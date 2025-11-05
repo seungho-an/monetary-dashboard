@@ -1,0 +1,32 @@
+name: Run Dashboard Update
+
+on:
+  workflow_dispatch: # Allows you to run it manually
+  schedule:
+    - cron: '0 8 * * *' # Runs every day at 8:00 AM UTC
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Python script
+        run: python run_dashboard.py
+
+      - name: Commit generated files
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Automated dashboard update
+          # Add all the files the script generates
+          file_pattern: dashboard.png index.html dashboard_recent_data.xlsx
