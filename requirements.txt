@@ -1,6 +1,6 @@
-pandas-datareader
 pandas
-matplotlib
 yfinance
+matplotlib
+fredapi
 statsmodels
 openpyxl
