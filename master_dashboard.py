@@ -324,7 +324,7 @@ except Exception as e:
 # --- 6. PLOTTING FUNCTIONS ---
 
 # Matplotlib 백엔드를 'Agg'로 설정하여 GUI 창 없이 실행
-# plt.switch_backend('Agg') # <-- GitHub Actions에서 실행 시 이 줄의 주석을 해제하세요.
+plt.switch_backend('Agg') # <-- GitHub Actions에서 실행 시 이 줄의 주석을 해제하세요.
 
 def plot_market_risk_dashboard(data, status):
     print("Generating Dashboard 1: Macro Fear...")
@@ -888,3 +888,79 @@ except Exception as e:
 
 print("\n" + "="*70)
 print("--- Master Dashboard Script Finished ---")
+
+# *** MODIFICATION: Add a function to generate README.md ***
+def generate_readme(report_file, image_files, status):
+    print("Generating README.md...")
+    # KST 시간 생성
+    kst = datetime.timezone(datetime.timedelta(hours=9))
+    report_time = datetime.datetime.now(kst).strftime('%Y-%m-%d %H:%M KST')
+    cache_buster = int(time.time()) # 캐시 무력화를 위한 타임스탬프
+
+    # 리포트 파일 읽기
+    try:
+        with open(report_file, 'r', encoding='utf-8') as f:
+            report_content = f.read()
+    except Exception as e:
+        print(f"Warning: Could not read summary report file. Error: {e}")
+        report_content = "Summary report is currently being generated..."
+
+    # README 내용 구성
+    readme_content = f"""# Monetary Dashboard (Updated Daily)
+Last Updated: {report_time}
+
+This repository automatically generates and updates a comprehensive 5-part dashboard of key financial and economic indicators every day. The analysis is performed by `master_dashboard.py` and run via GitHub Actions.
+
+---
+
+### **Automated Summary Report**
+<details>
+<summary>Click to expand the latest automated analysis</summary>
+
+```
+{report_content}
+```
+</details>
+
+---
+
+### Dashboard 1: Macro Fear & Risk
+(Current market sentiment and volatility)
+![Dashboard 1: Macro Fear & Risk](dashboard_1_market_risk.png?v={cache_buster})
+
+### Dashboard 2: Monetary Analysis & Liquidity
+(Health of the core banking system plumbing)
+![Dashboard 2: Monetary Analysis & Liquidity](dashboard_2_liquidity.png?v={cache_buster})
+
+### Dashboard 3: Global Risk & Recession Indicators
+(Leading indicators for global risk and recession)
+![Dashboard 3: Global Risk & Recession Indicators](dashboard_3_global_risk.png?v={cache_buster})
+
+### Dashboard 4: Leading Economic Indicators
+(Real economy leading indicators for recession)
+![Dashboard 4: Leading Economic Indicators](dashboard_4_leading_risk.png?v={cache_buster})
+
+### Dashboard 5: Consumer Health & Risk Appetite
+(Consumer health and relative risk sentiment)
+![Dashboard 5: Consumer & Risk Appetite](dashboard_5_earnings_consumer.png?v={cache_buster})
+"""
+    
+    # README.md 파일 쓰기
+    try:
+        with open("README.md", "w", encoding="utf-8") as f:
+            f.write(readme_content)
+        print("README.md generated successfully.")
+    except Exception as e:
+        print(f"Error writing README.md: {e}")
+
+# *** 9. NEW: Call README generation ***
+image_files = [
+    'dashboard_1_market_risk.png',
+    'dashboard_2_liquidity.png',
+    'dashboard_3_global_risk.png',
+    'dashboard_4_leading_risk.png',
+    'dashboard_5_earnings_consumer.png'
+]
+generate_readme('dashboard_summary_report.txt', image_files, status_results)
+
+print("\n--- Master Dashboard Script TRULY Finished ---")
