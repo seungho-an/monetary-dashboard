@@ -1,26 +1,23 @@
 Monetary Dashboard (Updated Daily)
 
-This repository automatically generates and updates a comprehensive 5-part dashboard of key financial and economic indicators every day. The analysis is performed by master_dashboard.py and run via GitHub Actions.
+This repository automatically generates and updates a comprehensive 5-part dashboard of key financial and economic indicators every day using GitHub Actions.
 
-The latest automated summary report is available here:
-dashboard_summary_report.txt
+Live Dashboard
 
-Dashboard 1: Macro Fear & Risk
+The live, interactive dashboard is available at:
 
-(Current market sentiment and volatility)
+https://seungho-an.github.io/monetary-dashboard/
 
-Dashboard 2: Monetary Analysis & Liquidity
+Overview
 
-(Health of the core banking system plumbing)
+This project runs the master_dashboard.py script daily to:
 
-Dashboard 3: Global Risk & Recession Indicators
+Fetch the latest data for 17+ indicators from FRED and Yahoo Finance.
 
-(Leading indicators for global risk and recession)
+Analyze the data to determine the current risk level ("status dots").
 
-Dashboard 4: Leading Economic Indicators
+Generate 5 dashboard images.
 
-(Real economy leading indicators for recession)
+Generate an automated summary report (dashboard_summary_report.txt).
 
-Dashboard 5: Consumer Health & Risk Appetite
-
-(Consumer health and relative risk sentiment)
+Build and deploy the index.html page for the live site.
