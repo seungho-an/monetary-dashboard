@@ -1,34 +1,34 @@
 ======================================================================
 --- AUTOMATED DASHBOARD INTERPRETATION ---
---- Report Generated on: 2025-11-15 05:15 KST ---
+--- Report Generated on: 2025-11-15 05:34 KST ---
 ======================================================================
 
---- 1. MACRO RISK & FEAR (Dash 1) ---
-  Credit Spreads (BAA10Y): Good / Stable (Value: 1.75%)
-  Stock Volatility (VIX): Very Good / Stable (Value: 19.66)
-  Bond Volatility (MOVE): Good / Stable (Value: 79.10)
-  Inflation Expectations: Very Good / Stable (Value: 2.28%)
-
---- 2. LIQUIDITY & SYSTEM PLUMBING (Dash 2) ---
+--- 1. LIQUIDITY & SYSTEM PLUMBING (Dash 1) ---
   Bank Reserve Ratio: Very High Risk (Low) (Value: 11.72%)
   System Regime (Elasticity): Very High Risk (Low) (Value: -0.25)
   Unsecured Stress (HY Spread): Good / Stable (Value: 3.09%)
   Secured Stress (SOFR Spread): Very High Risk (Value: 10.00 bps)
 
---- 3. LEADING & GLOBAL INDICATORS (Dash 3) ---
+--- 2. MACRO RISK & FEAR (Dash 2) ---
+  Credit Spreads (BAA10Y): Good / Stable (Value: 1.75%)
+  Stock Volatility (VIX): High Risk / Warning (Value: 20.06)
+  Bond Volatility (MOVE): Good / Stable (Value: 79.10)
+  Inflation Expectations: Very Good / Stable (Value: 2.28%)
+
+--- 3. CONSUMER & RISK APPETITE (Dash 3) ---
+  Real Retail Sales (YoY %): Good / Stable (Value: 2.00%)
+  VIX-MOVE Spread: Very High Risk (Low) (Value: -59.04)
+
+--- 4. LEADING & GLOBAL INDICATORS (Dash 4) ---
   Yield Curve (T10Y2Y): Good / Stable (Value: 0.53%)
   Financial Conditions (NFCI): Good / Stable (Value: -0.53)
   US Dollar Index: Very High Risk (Value: 121.78)
 
---- 4. LEADING ECONOMIC INDICATORS (Dash 4) ---
+--- 5. LEADING ECONOMIC INDICATORS (Dash 5) ---
   Housing Starts (YoY %): High Risk / Warning (Low) (Value: -6.04%)
   Durable Goods (YoY %): Good / Stable (Value: 7.63%)
   Jobless Claims (% from Low): Good / Stable (Value: 7.71%)
   High-Yield Spread: Good / Stable (Value: 3.09%)
-
---- 5. CONSUMER & RISK APPETITE (Dash 5) ---
-  Real Retail Sales (YoY %): Good / Stable (Value: 2.00%)
-  VIX-MOVE Spread: Very High Risk (Low) (Value: -59.44)
 
 ----------------------------------------------------------------------
 --- OVERALL SUMMARY ---
