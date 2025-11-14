@@ -1,32 +1,44 @@
-name: Run Dashboard Update
+name: Generate Daily Dashboard
 
 on:
-  workflow_dispatch: # Allows you to run it manually
+  push:
+    branches:
+      - main  # main 브랜치에 푸시될 때마다 실행
   schedule:
-    - cron: '0 8 * * *' # Runs every day at 8:00 AM UTC
+    - cron: '0 1 * * *' # 매일 UTC 01:00 (한국 시간 오전 10시)에 실행
+
+permissions:
+  contents: write # 저장소에 파일을 다시 커밋하기 위해 필요
 
 jobs:
-  build:
+  build-and-commit:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Check out repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11' # 스크립트와 호환되는 파이썬 버전
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Run Python script
-        run: python run_dashboard.py
-
-      - name: Commit generated files
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: Automated dashboard update
-          # Add all the files the script generates
-          file_pattern: dashboard.png index.html dashboard_recent_data.xlsx
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Run Python script to generate dashboards
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }} # GitHub Secret에서 API 키 주입
+        run: |
+          python master_dashboard.py
+          
+      - name: Commit and push generated files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add dashboard_*.png
+          git add dashboard_summary_report.txt
+          # 파일이 변경되었을 때만 커밋
+          git diff-index --quiet HEAD || git commit -m "Update daily dashboards and summary report"
+          git push
