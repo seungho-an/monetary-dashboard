@@ -322,7 +322,7 @@ except Exception as e:
 # --- 6. PLOTTING FUNCTIONS ---
 # Functions to create each of the 5 dashboards.
 
-def plot_market_risk_dashboard(data, status):
+def plot_market_risk_dashboard(data, status, shading): # Added 'shading'
     print("Generating Dashboard 1: Macro Fear...")
     fig, axes = plt.subplots(2, 2, figsize=(20, 12), sharex=True)
     fig.suptitle('Dashboard 1: Macro Fear & Risk', fontsize=20, y=0.98)
@@ -389,6 +389,21 @@ def plot_market_risk_dashboard(data, status):
         for ax in ax_row:
             for start, end in recessions:
                 ax.axvspan(start, end, color='grey', alpha=0.2)
+            
+            # --- ADDED DYNAMIC SHADING BLOCK ---
+            if shading['available']:
+                bottom, top = ax.get_ylim()
+                ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['correction'],
+                                facecolor='orange', alpha=0.3, zorder=0)
+                ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['decline'],
+                                facecolor='red', alpha=0.3, zorder=0)
+                ax.set_ylim(bottom, top) # Reset ylim
+            
+            # Add Repo Spike for consistency
+            ax.axvspan(datetime.datetime(2019, 9, 16), datetime.datetime(2019, 9, 20),
+                       alpha=0.3, color='blue', zorder=0)
+            # --- END OF ADDED BLOCK ---
+            
             ax.set_xlim(start_date_long, end_date)
             ax.xaxis.set_major_locator(mdates.YearLocator(2))
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
@@ -505,7 +520,7 @@ def plot_liquidity_dashboard(daily_data, weekly_data, elasticity, asset_data, sh
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     return fig
 
-def plot_global_risk_dashboard(data, status):
+def plot_global_risk_dashboard(data, status, shading): # Added 'shading'
     print("Generating Dashboard 3: Global & Leading Risk...")
     fig, axes = plt.subplots(2, 2, figsize=(20, 12))
     fig.suptitle('Dashboard 3: Global Risk & Recession Indicators', fontsize=20, y=0.98)
@@ -572,6 +587,21 @@ def plot_global_risk_dashboard(data, status):
             if ax == axes[1, 1]: continue 
             for start, end in recessions:
                 ax.axvspan(start, end, color='grey', alpha=0.2)
+            
+            # --- ADDED DYNAMIC SHADING BLOCK ---
+            if shading['available']:
+                bottom, top = ax.get_ylim()
+                ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['correction'],
+                                facecolor='orange', alpha=0.3, zorder=0)
+                ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['decline'],
+                                facecolor='red', alpha=0.3, zorder=0)
+                ax.set_ylim(bottom, top) # Reset ylim
+            
+            # Add Repo Spike for consistency
+            ax.axvspan(datetime.datetime(2019, 9, 16), datetime.datetime(2019, 9, 20),
+                       alpha=0.3, color='blue', zorder=0)
+            # --- END OF ADDED BLOCK ---
+            
             ax.set_xlim(start_date_long, end_date)
             ax.xaxis.set_major_locator(mdates.YearLocator(2))
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
@@ -580,7 +610,7 @@ def plot_global_risk_dashboard(data, status):
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     return fig
 
-def plot_leading_indicators_dashboard(data, daily_data, status):
+def plot_leading_indicators_dashboard(data, daily_data, status, shading): # Added 'shading'
     print("Generating Dashboard 4: Leading Economic Indicators...")
     fig, axes = plt.subplots(2, 2, figsize=(20, 12))
     fig.suptitle('Dashboard 4: Leading Economic Indicators (Recession)', fontsize=20, y=0.98)
@@ -652,6 +682,21 @@ def plot_leading_indicators_dashboard(data, daily_data, status):
         for ax in ax_row:
             for start, end in recessions:
                 ax.axvspan(start, end, color='grey', alpha=0.2)
+
+            # --- ADDED DYNAMIC SHADING BLOCK ---
+            if shading['available']:
+                bottom, top = ax.get_ylim()
+                ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['correction'],
+                                facecolor='orange', alpha=0.3, zorder=0)
+                ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['decline'],
+                                facecolor='red', alpha=0.3, zorder=0)
+                ax.set_ylim(bottom, top) # Reset ylim
+            
+            # Add Repo Spike for consistency
+            ax.axvspan(datetime.datetime(2019, 9, 16), datetime.datetime(2019, 9, 20),
+                       alpha=0.3, color='blue', zorder=0)
+            # --- END OF ADDED BLOCK ---
+
             ax.set_xlim(start_date_long, end_date)
             ax.xaxis.set_major_locator(mdates.YearLocator(2))
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
@@ -660,7 +705,7 @@ def plot_leading_indicators_dashboard(data, daily_data, status):
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     return fig
     
-def plot_earnings_consumer_dashboard(data, market_data, status):
+def plot_earnings_consumer_dashboard(data, market_data, status, shading): # Added 'shading'
     print("Generating Dashboard 5: Consumer & Risk Appetite...")
     # Changed to 1x3 plot (2 charts + 1 legend)
     fig, axes = plt.subplots(1, 3, figsize=(24, 8)) 
@@ -715,6 +760,21 @@ def plot_earnings_consumer_dashboard(data, market_data, status):
     for ax in axes[:2]: # Only format the first two plots
         for start, end in recessions:
             ax.axvspan(start, end, color='grey', alpha=0.2)
+        
+        # --- ADDED DYNAMIC SHADING BLOCK ---
+        if shading['available']:
+            bottom, top = ax.get_ylim()
+            ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['correction'],
+                            facecolor='orange', alpha=0.3, zorder=0)
+            ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['decline'],
+                            facecolor='red', alpha=0.3, zorder=0)
+            ax.set_ylim(bottom, top) # Reset ylim
+        
+        # Add Repo Spike for consistency
+        ax.axvspan(datetime.datetime(2019, 9, 16), datetime.datetime(2019, 9, 20),
+                   alpha=0.3, color='blue', zorder=0)
+        # --- END OF ADDED BLOCK ---
+        
         ax.set_xlim(start_date_long, end_date)
         ax.xaxis.set_major_locator(mdates.YearLocator(2))
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
@@ -737,7 +797,7 @@ shading_data = {
 
 # --- Create all five figures ---
 print("Generating and saving Dashboard 1 (Macro Fear)...")
-fig1 = plot_market_risk_dashboard(df_market_risk, status_results)
+fig1 = plot_market_risk_dashboard(df_market_risk, status_results, shading_data) # Added shading_data
 fig1.savefig('dashboard_1_market_risk.png', dpi=150, bbox_inches='tight')
 
 print("Generating and saving Dashboard 2 (Liquidity)...")
@@ -745,15 +805,15 @@ fig2 = plot_liquidity_dashboard(daily_data_liq, weekly_data_liq, elasticity_df, 
 fig2.savefig('dashboard_2_liquidity.png', dpi=150, bbox_inches='tight')
 
 print("Generating and saving Dashboard 3 (Global Risk)...")
-fig3 = plot_global_risk_dashboard(df_global_risk, status_results)
+fig3 = plot_global_risk_dashboard(df_global_risk, status_results, shading_data) # Added shading_data
 fig3.savefig('dashboard_3_global_risk.png', dpi=150, bbox_inches='tight')
 
 print("Generating and saving Dashboard 4 (Leading Indicators)...")
-fig4 = plot_leading_indicators_dashboard(df_leading_risk, daily_data_raw, status_results)
+fig4 = plot_leading_indicators_dashboard(df_leading_risk, daily_data_raw, status_results, shading_data) # Added shading_data
 fig4.savefig('dashboard_4_leading_risk.png', dpi=150, bbox_inches='tight')
 
 print("Generating and saving Dashboard 5 (Consumer & Risk Appetite)...")
-fig5 = plot_earnings_consumer_dashboard(df_earnings_consumer, df_market_risk, status_results)
+fig5 = plot_earnings_consumer_dashboard(df_earnings_consumer, df_market_risk, status_results, shading_data) # Added shading_data
 fig5.savefig('dashboard_5_earnings_consumer.png', dpi=150, bbox_inches='tight')
 
 
