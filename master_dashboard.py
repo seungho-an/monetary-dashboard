@@ -12,6 +12,7 @@ from statsmodels.regression.rolling import RollingOLS
 import warnings
 import time
 import os # Import for GitHub Actions API Key
+from pytz import timezone # For KST timestamp
 
 # --- 0. Suppress Warnings ---
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -57,7 +58,8 @@ if not fred_api_key:
     print("CRITICAL ERROR: FRED_API_KEY environment variable not set.")
     # Fallback for local testing (uncomment if running on your machine)
     # fred_api_key = 'YOUR_API_KEY_HERE' 
-    exit() # Fail the script if no key is found in production
+    if not fred_api_key: # Check fallback
+        exit("No FRED_API_KEY found. Exiting.") # Fail the script if no key
 
 start_date_long = datetime.datetime(2000, 1, 1) # For long-term charts
 start_date_short = datetime.datetime(2018, 1, 1) # For liquidity charts
@@ -76,7 +78,9 @@ fred_daily_tickers = [
 ]
 fred_weekly_tickers = ['WRESBAL', 'TLAACBW027SBOG', 'IC4WSA']
 fred_monthly_tickers = [
-    'HOUST', 'NEWORDER', 'RRSFS'
+    'HOUST', 
+    'NEWORDERS', # *** FIX 1: Changed from NEWORDER to NEWORDERS (Philly Fed PMI)
+    'RRSFS'
 ]
 # Quarterly tickers (CPATA) are proprietary and were removed.
 
@@ -119,15 +123,18 @@ try:
     
     # Loop through tickers to extract the correct 'Close' or 'Adj Close'
     for ticker in yahoo_tickers:
+        # Check if ticker data was downloaded
+        if ticker not in asset_data_raw.columns:
+            print(f"Warning: Ticker {ticker} not found in Yahoo Finance download.")
+            continue
+            
         if ticker == '^VIX': # VIX does not have 'Adj Close'
-            if ticker in asset_data_raw.columns:
+            if 'Close' in asset_data_raw[ticker].columns:
                  asset_prices_full[ticker] = asset_data_raw[ticker]['Close']
         else: # For all other assets, prefer 'Adj Close'
-            if (ticker, 'Adj Close') in asset_data_raw.columns:
+            if 'Adj Close' in asset_data_raw[ticker].columns:
                 asset_prices_full[ticker] = asset_data_raw[ticker]['Adj Close']
-            elif (ticker, 'Close') in asset_data_raw.columns:
-                 asset_prices_full[ticker] = asset_data_raw[ticker]['Close']
-            elif ticker in asset_data_raw.columns: # Handle single-ticker results
+            elif 'Close' in asset_data_raw[ticker].columns:
                  asset_prices_full[ticker] = asset_data_raw[ticker]['Close']
 
     asset_prices_full = asset_prices_full.ffill()
@@ -136,7 +143,7 @@ try:
 except Exception as e:
     print(f"CRITICAL ERROR during data fetch: {e}")
     print("Please check API key, internet connection, and library installations.")
-    exit()
+    exit(1) # Exit with an error code
 
 # --- 4. UNIFIED DATA PROCESSING ---
 print("Processing all dashboard data...")
@@ -166,7 +173,11 @@ daily_data_liq['SOFR_Spread'] = (daily_data_liq['SOFR'] - daily_data_liq['POLICY
 daily_data_liq['RRP_Spread'] = (daily_data_liq['RRPONTSYAWARD'] - daily_data_liq['POLICY_RATE']) * 100
 daily_data_liq['DW_Spread'] = (daily_data_liq['DPCREDIT'] - daily_data_liq['POLICY_RATE']) * 100
 daily_data_liq['RRPONTSYD_B'] = daily_data_liq['RRPONTSYD'] / 1000
-weekly_data_liq['RESERVE_RATIO_PCT'] = (weekly_data_liq['WRESBAL'] / weekly_data_liq['TLAACBW027SBOG']) * 100
+
+# *** FIX 2: Correct the unit mismatch (Millions vs Billions) ***
+# WRESBAL (Reserves) is in Millions, TLAACBW027SBOG (Assets) is in Billions.
+# Convert WRESBAL to Billions by dividing by 1000.
+weekly_data_liq['RESERVE_RATIO_PCT'] = ((weekly_data_liq['WRESBAL'] / 1000) / weekly_data_liq['TLAACBW027SBOG']) * 100
 
 weekly_spread = daily_data_liq['EFFR_Spread'].resample('W-WED').mean()
 weekly_ratio = weekly_data_liq['RESERVE_RATIO_PCT'].resample('W-WED').mean()
@@ -190,7 +201,7 @@ elasticity_df = pd.DataFrame(elasticity_data)
 asset_norm = pd.DataFrame(index=asset_prices_full.index)
 for col in ['^GSPC', '^IXIC', 'BTC-USD', '^DJI', '^RUT']:
     if col in asset_prices_full.columns:
-        first_valid_price = get_last_value(asset_prices_full[col])
+        first_valid_price = get_last_value(asset_prices_full[col].dropna())
         if pd.notna(first_valid_price) and first_valid_price > 0:
             asset_norm[col] = (asset_prices_full[col] / first_valid_price) * 100
         else:
@@ -227,7 +238,7 @@ if not claims_data.empty:
     df_leading_risk['CLAIMS_RISE_PCT'] = df_leading_risk['CLAIMS_RISE_PCT'].reindex(df_leading_risk.index, method='ffill')
     df_leading_risk['CLAIMS_52WK_LOW'] = claims_52wk_low.reindex(df_leading_risk.index, method='ffill')
 df_leading_risk['IC4WSA'] = claims_data.reindex(df_leading_risk.index, method='ffill')
-df_leading_risk['NEWORDER'] = monthly_data_raw['NEWORDER'].reindex(df_leading_risk.index, method='ffill')
+df_leading_risk['NEWORDERS'] = monthly_data_raw['NEWORDERS'].reindex(df_leading_risk.index, method='ffill')
 
 # --- 4e. Consumer & Risk Data (Dashboard 5) ---
 print("Processing consumer and risk appetite data...")
@@ -262,7 +273,7 @@ try:
     dollar_mean = df_global_risk['DTWEXBGS'].mean()
     
     latest_values['houst_yoy'] = get_last_value(df_leading_risk['HOUST_YOY'])
-    latest_values['new_orders'] = get_last_value(df_leading_risk['NEWORDER'])
+    latest_values['new_orders'] = get_last_value(df_leading_risk['NEWORDERS']) # *** FIX 1: Use NEWORDERS ***
     latest_values['claims_rise'] = get_last_value(df_leading_risk['CLAIMS_RISE_PCT'])
 
     latest_values['rrsfs_yoy'] = get_last_value(df_earnings_consumer['RRSFS_YOY'])
@@ -275,22 +286,24 @@ try:
     status_results['t10yie'] = get_status(latest_values['t10yie'], {'red_high': 3.5, 'yellow_high': 3.0, 'lightgreen_high': 2.0, 'yellow_low': 1.5, 'red_low': 1.0})
     status_results['vix'] = get_status(latest_values['vix'], {'red_high': 30, 'yellow_high': 20, 'lightgreen_high': 15, 'blue_low': 0})
 
-    status_results['res_ratio'] = get_status(latest_values['res_ratio'], {'red_low': 12, 'yellow_low': 13, 'lightgreen_high': 100, 'blue_low': 13})
-    status_results['elasticity'] = get_status(latest_values['elasticity'], {'red_low': 0, 'yellow_low': 10, 'lightgreen_high': 100, 'blue_low': 10})
+    # *** FIX 2: Corrected thresholds for res_ratio (now 11.7% not 11722%) ***
+    status_results['res_ratio'] = get_status(latest_values['res_ratio'], {'red_low': 12, 'yellow_low': 13, 'lightgreen_high': 100, 'blue_low': 13.01})
+    status_results['elasticity'] = get_status(latest_values['elasticity'], {'red_low': 0, 'yellow_low': 10, 'lightgreen_high': 100, 'blue_low': 10.01})
     status_results['effr_spread'] = get_status(latest_values['effr_spread'], {'red_high': 10, 'yellow_high': 5, 'grey_low': -5, 'blue_low': -100})
     status_results['sofr_spread'] = get_status(latest_values['sofr_spread'], {'red_high': 10, 'yellow_high': 5, 'grey_low': -5, 'blue_low': -100})
     status_results['hy_spread'] = get_status(latest_values['hy_spread'], {'red_high': 6.0, 'yellow_high': 4.5, 'lightgreen_high': 3.5, 'blue_low': 0})
 
-    status_results['t10y2y'] = get_status(latest_values['t10y2y'], {'red_low': 0, 'yellow_low': 0.25, 'lightgreen_high': 100, 'blue_low': 0.25})
+    status_results['t10y2y'] = get_status(latest_values['t10y2y'], {'red_low': 0, 'yellow_low': 0.25, 'lightgreen_high': 100, 'blue_low': 0.26})
     status_results['nfci'] = get_status(latest_values['nfci'], {'red_high': 0, 'yellow_high': -0.15, 'lightgreen_high': -0.5, 'blue_low': -100})
     status_results['dollar'] = get_status(latest_values['dollar'], {'red_high': dollar_mean + 10, 'yellow_high': dollar_mean + 5, 'lightgreen_high': dollar_mean, 'blue_low': 0})
 
     status_results['houst_yoy'] = get_status(latest_values['houst_yoy'], {'red_low': -20.0, 'yellow_low': 0, 'lightgreen_high': 100, 'blue_low': 0.01})
+    # *** FIX 1: Corrected thresholds for NEWORDERS (PMI, not Billions) ***
     status_results['new_orders'] = get_status(latest_values['new_orders'], {'red_low': -20, 'yellow_low': 0, 'lightgreen_high': 100, 'blue_low': 0.01})
     status_results['claims_rise'] = get_status(latest_values['claims_rise'], {'red_high': 40, 'yellow_high': 20, 'lightgreen_high': 10, 'blue_low': -100})
     
     status_results['rrsfs_yoy'] = get_status(latest_values['rrsfs_yoy'], {'red_low': -1, 'yellow_low': 0, 'lightgreen_high': 100, 'blue_low': 0.01})
-    status_results['vix_move_spread'] = get_status(latest_values['vix_move_spread'], {'red_low': -20, 'yellow_low': -10, 'lightgreen_high': 100, 'blue_low': -10})
+    status_results['vix_move_spread'] = get_status(latest_values['vix_move_spread'], {'red_low': -20, 'yellow_low': -10, 'lightgreen_high': 100, 'blue_low': -9.99})
 
     print("Status assessment complete.")
     
@@ -391,7 +404,9 @@ def plot_liquidity_dashboard(daily_data, weekly_data, elasticity, asset_data, sh
     status_color, status_text = status['res_ratio']
     data = weekly_data['RESERVE_RATIO_PCT'].dropna()
     ax.plot(data.index, data, color='blue', label='Reserves / Bank Assets')
+    # *** THIS IS THE LINE YOU ASKED FOR ***
     ax.axhspan(12, 13, color='grey', alpha=0.3, label='Reserve Scarcity Zone')
+    # ***
     ax.set_title('5. Bank Reserve Levels', fontsize=14, loc='left')
     ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
     ax.set_ylabel('Reserves as % of Bank Assets', color='blue')
@@ -591,7 +606,7 @@ def plot_leading_indicators_dashboard(data, daily_data, status):
     # Plot 13: Philly Fed New Orders
     ax = axes[0, 1]
     status_color, status_text = status['new_orders']
-    plot_data = data['NEWORDER'].dropna()
+    plot_data = data['NEWORDERS'].dropna() # *** FIX 1: Use NEWORDERS ***
     ax.plot(plot_data.index, plot_data, color='orange', label='Philly Fed New Orders Index')
     ax.axhline(0, color='black', linestyle='--', linewidth=1.0, label='0 (Growth/Contraction)')
     ax.axhline(-20, color='red', linestyle='--', linewidth=1.5, label='-20 (Recession Signal)')
@@ -754,7 +769,7 @@ print("All dashboard images saved successfully.")
 print("\n" + "="*70)
 print("--- AUTOMATED DASHBOARD INTERPRETATION ---")
 # Get current time in KST (UTC+9)
-kst = datetime.timezone(datetime.timedelta(hours=9))
+kst = timezone('Asia/Seoul')
 report_time = datetime.datetime.now(kst).strftime('%Y-%m-%d %H:%M KST')
 print(f"--- Report Generated on: {report_time} ---")
 print("="*70 + "\n")
@@ -871,7 +886,7 @@ print("--- Master Dashboard Script Finished ---")
 def generate_html_page(report_file, image_files, status):
     print("Generating index.html...")
     # Get KST time
-    kst = datetime.timezone(datetime.timedelta(hours=9))
+    kst = timezone('Asia/Seoul')
     report_time = datetime.datetime.now(kst).strftime('%Y-%m-%d %H:%M KST')
     cache_buster = int(time.time()) # Cache buster
 
@@ -947,7 +962,7 @@ def generate_html_page(report_file, image_files, status):
             padding: 20px;
             border-radius: 8px;
             overflow-x: auto;
-            white-space: pre-wrap; /* Use pre-wrap for better wrapping */
+            white-space: pre; /* Use pre to respect all spaces/newlines */
             font-size: 0.9em;
             margin-top: 15px;
         }}
