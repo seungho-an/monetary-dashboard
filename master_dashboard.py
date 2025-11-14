@@ -57,9 +57,10 @@ fred_api_key = os.environ.get('FRED_API_KEY')
 if not fred_api_key:
     print("CRITICAL ERROR: FRED_API_KEY environment variable not set.")
     # Fallback for local testing (uncomment if running on your machine)
-    # fred_api_key = 'YOUR_API_KEY_HERE' 
+    # fred_api_key = '607b00d349d2ffaf1789f1e4846419d2' # Example, replace with your key
     if not fred_api_key: # Check fallback
-        exit("No FRED_API_KEY found. Exiting.") # Fail the script if no key
+        print("No FRED_API_KEY found. Exiting.") # Fail the script if no key
+        exit(1) # Exit with an error code
 
 start_date_long = datetime.datetime(2000, 1, 1) # For long-term charts
 start_date_short = datetime.datetime(2018, 1, 1) # For liquidity charts
