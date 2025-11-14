@@ -1,0 +1,149 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monetary Dashboard (Updated Daily)</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f4f7f6; 
+            color: #333; 
+            margin: 0; 
+            padding: 20px; 
+            line-height: 1.6;
+        }
+        .container { 
+            max-width: 1400px; 
+            margin: auto; 
+            background-color: #ffffff;
+            border: 1px solid #ddd; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+        }
+        header { 
+            padding: 20px 30px; 
+            border-bottom: 2px solid #eee; 
+        }
+        header h1 { 
+            margin: 0; 
+            color: #1a1a1a;
+        }
+        header p { 
+            margin: 5px 0 0; 
+            font-size: 1.1em; 
+            color: #555; 
+        }
+        .content { 
+            padding: 30px; 
+        }
+        .summary {
+            background-color: #fdfdfd;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .summary details { 
+            cursor: pointer; 
+        }
+        .summary summary { 
+            font-weight: bold; 
+            font-size: 1.2em;
+            color: #0056b3;
+        }
+        .report-content {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #2b2b2b;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre; /* Use pre to respect all spaces/newlines */
+            font-size: 0.9em;
+            margin-top: 15px;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* 1 column on mobile */
+            gap: 30px;
+        }
+        .dashboard-item {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            background: #fff;
+        }
+        .dashboard-item h2 {
+            font-size: 1.5em;
+            margin: 0;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .dashboard-item img { 
+            width: 100%; 
+            height: auto; 
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            display: block;
+        }
+        
+        /* 2-column layout (tablet and up) */
+        @media (min-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        /* 1-column layout for the last dashboard */
+        .dashboard-item.full-width {
+             grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Monetary Dashboard (Updated Daily)</h1>
+            <p>Last Updated: 2025-11-15 02:47 KST</p>
+        </header>
+        
+        <div class="content">
+            <div class="summary">
+                <details open>
+                    <summary>Click to expand/collapse the latest automated analysis</summary>
+                    <div class="report-content">======================================================================<br>--- AUTOMATED DASHBOARD INTERPRETATION ---<br>--- Report Generated on: 2025-11-15 02:47 KST ---<br>======================================================================<br><br>--- 1. MACRO RISK & FEAR (Dash 1) ---<br>&nbsp;&nbsp;Credit Spreads (BAA10Y): Good / Stable (Value: 1.75%)<br>&nbsp;&nbsp;Stock Volatility (VIX): Very Good / Stable (Value: 19.80)<br>&nbsp;&nbsp;Bond Volatility (MOVE): Good / Stable (Value: 79.10)<br>&nbsp;&nbsp;Inflation Expectations: Very Good / Stable (Value: 2.28%)<br><br>--- 2. LIQUIDITY & SYSTEM PLUMBING (Dash 2) ---<br>&nbsp;&nbsp;Bank Reserve Ratio: Very High Risk (Low) (Value: 11.72%)<br>&nbsp;&nbsp;System Regime (Elasticity): Very High Risk (Low) (Value: -0.25)<br>&nbsp;&nbsp;Unsecured Stress (HY Spread): Good / Stable (Value: 3.09%)<br>&nbsp;&nbsp;Secured Stress (SOFR Spread): Very High Risk (Value: 10.00 bps)<br><br>--- 3. LEADING & GLOBAL INDICATORS (Dash 3) ---<br>&nbsp;&nbsp;Yield Curve (T10Y2Y): Good / Stable (Value: 0.53%)<br>&nbsp;&nbsp;Financial Conditions (NFCI): Good / Stable (Value: -0.53)<br>&nbsp;&nbsp;US Dollar Index: Very High Risk (Value: 121.78)<br><br>--- 4. LEADING ECONOMIC INDICATORS (Dash 4) ---<br>&nbsp;&nbsp;Housing Starts (YoY %): High Risk / Warning (Low) (Value: -6.04%)<br>&nbsp;&nbsp;Durable Goods (YoY %): Good / Stable (Value: 7.63%)<br>&nbsp;&nbsp;Jobless Claims (% from Low): Good / Stable (Value: 7.71%)<br>&nbsp;&nbsp;High-Yield Spread: Good / Stable (Value: 3.09%)<br><br>--- 5. CONSUMER & RISK APPETITE (Dash 5) ---<br>&nbsp;&nbsp;Real Retail Sales (YoY %): Good / Stable (Value: 2.00%)<br>&nbsp;&nbsp;VIX-MOVE Spread: Very High Risk (Low) (Value: -59.30)<br><br>----------------------------------------------------------------------<br>--- OVERALL SUMMARY ---<br>ALERT: Multiple (5) high-risk indicators are active. The system is showing significant stress.</div>
+                </details>
+            </div>
+            
+            <div class="dashboard-grid">
+                <div class="dashboard-item">
+                    <h2>Dashboard 1: Macro Fear & Risk</h2>
+                    <img src="dashboard_1_market_risk.png?v=1763142430" alt="Dashboard 1: Macro Fear & Risk">
+                </div>
+                
+                <div class="dashboard-item">
+                    <h2>Dashboard 2: Monetary Analysis & Liquidity</h2>
+                    <img src="dashboard_2_liquidity.png?v=1763142430" alt="Dashboard 2: Monetary Analysis & Liquidity">
+                </div>
+                
+                <div class="dashboard-item">
+                    <h2>Dashboard 3: Global Risk & Recession Indicators</h2>
+                    <img src="dashboard_3_global_risk.png?v=1763142430" alt="Dashboard 3: Global Risk & Recession Indicators">
+                </div>
+                
+                <div class="dashboard-item">
+                    <h2>Dashboard 4: Leading Economic Indicators</h2>
+                    <img src="dashboard_4_leading_risk.png?v=1763142430" alt="Dashboard 4: Leading Economic Indicators">
+                </div>
+                
+                <div class="dashboard-item full-width">
+                    <h2>Dashboard 5: Consumer Health & Risk Appetite</h2>
+                    <img src="dashboard_5_earnings_consumer.png?v=1763142430" alt="Dashboard 5: Consumer & Risk Appetite">
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

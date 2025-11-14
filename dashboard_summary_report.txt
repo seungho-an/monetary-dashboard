@@ -1,18 +1,18 @@
 ======================================================================
 --- AUTOMATED DASHBOARD INTERPRETATION ---
---- Report Generated on: 2025-11-14 23:59 KST ---
+--- Report Generated on: 2025-11-15 02:47 KST ---
 ======================================================================
 
 --- 1. MACRO RISK & FEAR (Dash 1) ---
   Credit Spreads (BAA10Y): Good / Stable (Value: 1.75%)
-  Stock Volatility (VIX): High Risk / Warning (Value: 21.93)
+  Stock Volatility (VIX): Very Good / Stable (Value: 19.80)
   Bond Volatility (MOVE): Good / Stable (Value: 79.10)
   Inflation Expectations: Very Good / Stable (Value: 2.28%)
 
 --- 2. LIQUIDITY & SYSTEM PLUMBING (Dash 2) ---
-  Bank Reserve Ratio: Very Good / Stable (Value: 11722.73%)
-  System Regime (Elasticity): Very High Risk (Low) (Value: -0.00)
-  Unsecured Stress (HY Spread): Good / Stable (Value: 3.02%)
+  Bank Reserve Ratio: Very High Risk (Low) (Value: 11.72%)
+  System Regime (Elasticity): Very High Risk (Low) (Value: -0.25)
+  Unsecured Stress (HY Spread): Good / Stable (Value: 3.09%)
   Secured Stress (SOFR Spread): Very High Risk (Value: 10.00 bps)
 
 --- 3. LEADING & GLOBAL INDICATORS (Dash 3) ---
@@ -22,14 +22,14 @@
 
 --- 4. LEADING ECONOMIC INDICATORS (Dash 4) ---
   Housing Starts (YoY %): High Risk / Warning (Low) (Value: -6.04%)
-  Philly Fed New Orders (PMI): Very Good / Stable (Value: 76706.00)
+  Durable Goods (YoY %): Good / Stable (Value: 7.63%)
   Jobless Claims (% from Low): Good / Stable (Value: 7.71%)
-  High-Yield Spread: Good / Stable (Value: 3.02%)
+  High-Yield Spread: Good / Stable (Value: 3.09%)
 
 --- 5. CONSUMER & RISK APPETITE (Dash 5) ---
   Real Retail Sales (YoY %): Good / Stable (Value: 2.00%)
-  VIX-MOVE Spread: Very High Risk (Low) (Value: -57.17)
+  VIX-MOVE Spread: Very High Risk (Low) (Value: -59.30)
 
 ----------------------------------------------------------------------
 --- OVERALL SUMMARY ---
-ALERT: Multiple (4) high-risk indicators are active. The system is showing significant stress.
+ALERT: Multiple (5) high-risk indicators are active. The system is showing significant stress.
