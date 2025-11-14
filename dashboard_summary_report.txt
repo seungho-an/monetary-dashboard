@@ -1,11 +1,11 @@
 ======================================================================
 --- AUTOMATED DASHBOARD INTERPRETATION ---
---- Report Generated on: 2025-11-14 17:24 KST ---
+--- Report Generated on: 2025-11-14 17:39 KST ---
 ======================================================================
 
 --- 1. MACRO RISK & FEAR (Dash 1) ---
   Credit Spreads (BAA10Y): Good / Stable (Value: 1.75%)
-  Stock Volatility (VIX): High Risk / Warning (Value: 20.00)
+  Stock Volatility (VIX): High Risk / Warning (Value: 21.50)
   Bond Volatility (MOVE): Good / Stable (Value: 79.10)
   Inflation Expectations: Very Good / Stable (Value: 2.28%)
 
@@ -28,7 +28,7 @@
 
 --- 5. CONSUMER & RISK APPETITE (Dash 5) ---
   Real Retail Sales (YoY %): Good / Stable (Value: 2.00%)
-  VIX-MOVE Spread: Very High Risk (Low) (Value: -59.10)
+  VIX-MOVE Spread: Very High Risk (Low) (Value: -57.60)
 
 ----------------------------------------------------------------------
 --- OVERALL SUMMARY ---
