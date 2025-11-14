@@ -80,7 +80,7 @@ fred_daily_tickers = [
 fred_weekly_tickers = ['WRESBAL', 'TLAACBW027SBOG', 'IC4WSA']
 fred_monthly_tickers = [
     'HOUST', 
-    'NEWORDERS', # *** FIX 1: Changed from NEWORDER to NEWORDERS (Philly Fed PMI)
+    'DGORDER', # *** FIX: Replaced NEWORDERS with DGORDER (Durable Goods) ***
     'RRSFS'
 ]
 # Quarterly tickers (CPATA) are proprietary and were removed.
@@ -175,7 +175,6 @@ daily_data_liq['RRP_Spread'] = (daily_data_liq['RRPONTSYAWARD'] - daily_data_liq
 daily_data_liq['DW_Spread'] = (daily_data_liq['DPCREDIT'] - daily_data_liq['POLICY_RATE']) * 100
 daily_data_liq['RRPONTSYD_B'] = daily_data_liq['RRPONTSYD'] / 1000
 
-# *** FIX 2: Correct the unit mismatch (Millions vs Billions) ***
 # WRESBAL (Reserves) is in Millions, TLAACBW027SBOG (Assets) is in Billions.
 # Convert WRESBAL to Billions by dividing by 1000.
 weekly_data_liq['RESERVE_RATIO_PCT'] = ((weekly_data_liq['WRESBAL'] / 1000) / weekly_data_liq['TLAACBW027SBOG']) * 100
@@ -239,7 +238,10 @@ if not claims_data.empty:
     df_leading_risk['CLAIMS_RISE_PCT'] = df_leading_risk['CLAIMS_RISE_PCT'].reindex(df_leading_risk.index, method='ffill')
     df_leading_risk['CLAIMS_52WK_LOW'] = claims_52wk_low.reindex(df_leading_risk.index, method='ffill')
 df_leading_risk['IC4WSA'] = claims_data.reindex(df_leading_risk.index, method='ffill')
-df_leading_risk['NEWORDERS'] = monthly_data_raw['NEWORDERS'].reindex(df_leading_risk.index, method='ffill')
+
+# *** FIX: Calculate YoY for DGORDER ***
+dgorder_monthly = monthly_data_raw['DGORDER'].dropna().asfreq('MS') 
+df_leading_risk['DGORDER_YOY'] = (dgorder_monthly.pct_change(12) * 100).reindex(df_leading_risk.index, method='ffill')
 
 # --- 4e. Consumer & Risk Data (Dashboard 5) ---
 print("Processing consumer and risk appetite data...")
@@ -274,7 +276,8 @@ try:
     dollar_mean = df_global_risk['DTWEXBGS'].mean()
     
     latest_values['houst_yoy'] = get_last_value(df_leading_risk['HOUST_YOY'])
-    latest_values['new_orders'] = get_last_value(df_leading_risk['NEWORDERS']) # *** FIX 1: Use NEWORDERS ***
+    # *** FIX: Get new DGORDER_YOY value ***
+    latest_values['new_orders_yoy'] = get_last_value(df_leading_risk['DGORDER_YOY']) 
     latest_values['claims_rise'] = get_last_value(df_leading_risk['CLAIMS_RISE_PCT'])
 
     latest_values['rrsfs_yoy'] = get_last_value(df_earnings_consumer['RRSFS_YOY'])
@@ -287,7 +290,6 @@ try:
     status_results['t10yie'] = get_status(latest_values['t10yie'], {'red_high': 3.5, 'yellow_high': 3.0, 'lightgreen_high': 2.0, 'yellow_low': 1.5, 'red_low': 1.0})
     status_results['vix'] = get_status(latest_values['vix'], {'red_high': 30, 'yellow_high': 20, 'lightgreen_high': 15, 'blue_low': 0})
 
-    # *** FIX 2: Corrected thresholds for res_ratio (now 11.7% not 11722%) ***
     status_results['res_ratio'] = get_status(latest_values['res_ratio'], {'red_low': 12, 'yellow_low': 13, 'lightgreen_high': 100, 'blue_low': 13.01})
     status_results['elasticity'] = get_status(latest_values['elasticity'], {'red_low': 0, 'yellow_low': 10, 'lightgreen_high': 100, 'blue_low': 10.01})
     status_results['effr_spread'] = get_status(latest_values['effr_spread'], {'red_high': 10, 'yellow_high': 5, 'grey_low': -5, 'blue_low': -100})
@@ -299,8 +301,8 @@ try:
     status_results['dollar'] = get_status(latest_values['dollar'], {'red_high': dollar_mean + 10, 'yellow_high': dollar_mean + 5, 'lightgreen_high': dollar_mean, 'blue_low': 0})
 
     status_results['houst_yoy'] = get_status(latest_values['houst_yoy'], {'red_low': -20.0, 'yellow_low': 0, 'lightgreen_high': 100, 'blue_low': 0.01})
-    # *** FIX 1: Corrected thresholds for NEWORDERS (PMI, not Billions) ***
-    status_results['new_orders'] = get_status(latest_values['new_orders'], {'red_low': -20, 'yellow_low': 0, 'lightgreen_high': 100, 'blue_low': 0.01})
+    # *** FIX: New thresholds for DGORDER_YOY ***
+    status_results['new_orders_yoy'] = get_status(latest_values['new_orders_yoy'], {'red_low': -5, 'yellow_low': 0, 'lightgreen_high': 100, 'blue_low': 0.01})
     status_results['claims_rise'] = get_status(latest_values['claims_rise'], {'red_high': 40, 'yellow_high': 20, 'lightgreen_high': 10, 'blue_low': -100})
     
     status_results['rrsfs_yoy'] = get_status(latest_values['rrsfs_yoy'], {'red_low': -1, 'yellow_low': 0, 'lightgreen_high': 100, 'blue_low': 0.01})
@@ -313,7 +315,7 @@ except Exception as e:
     status_results = {k: ('grey', 'Data Error') for k in [
         'baa', 'move', 't10yie', 'vix', 'res_ratio', 'elasticity', 
         'effr_spread', 'sofr_spread', 'hy_spread', 't10y2y', 'nfci', 'dollar',
-        'houst_yoy', 'new_orders', 'claims_rise',
+        'houst_yoy', 'new_orders_yoy', 'claims_rise', # FIX: 'new_orders_yoy'
         'rrsfs_yoy', 'vix_move_spread'
     ]}
 
@@ -604,18 +606,18 @@ def plot_leading_indicators_dashboard(data, daily_data, status):
     ax.grid(True, linestyle='--', alpha=0.6)
     ax.legend(loc='lower left')
 
-    # Plot 13: Philly Fed New Orders
+    # *** FIX: Plot 13 updated to DGORDER_YOY ***
     ax = axes[0, 1]
-    status_color, status_text = status['new_orders']
-    plot_data = data['NEWORDERS'].dropna() # *** FIX 1: Use NEWORDERS ***
-    ax.plot(plot_data.index, plot_data, color='orange', label='Philly Fed New Orders Index')
+    status_color, status_text = status['new_orders_yoy']
+    plot_data = data['DGORDER_YOY'].dropna() 
+    ax.plot(plot_data.index, plot_data, color='orange', label='Durable Goods New Orders % Change (YoY)')
     ax.axhline(0, color='black', linestyle='--', linewidth=1.0, label='0 (Growth/Contraction)')
-    ax.axhline(-20, color='red', linestyle='--', linewidth=1.5, label='-20 (Recession Signal)')
+    ax.axhline(-5, color='red', linestyle='--', linewidth=1.5, label='-5 (Recession Signal)')
     ax.fill_between(plot_data.index, plot_data, 0, where=plot_data < 0, color='yellow', alpha=0.3, label='Contraction')
-    ax.fill_between(plot_data.index, plot_data, -20, where=plot_data < -20, color='red', alpha=0.3, label='Recession Signal')
-    ax.set_title('13. Philly Fed New Orders', fontsize=14, loc='left')
+    ax.fill_between(plot_data.index, plot_data, -5, where=plot_data < -5, color='red', alpha=0.3, label='Recession Signal')
+    ax.set_title('13. Durable Goods New Orders (YoY)', fontsize=14, loc='left')
     ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
-    ax.set_ylabel('Index (0 = Neutral)')
+    ax.set_ylabel('Percent Change (YoY)')
     ax.grid(True, linestyle='--', alpha=0.6)
     ax.legend(loc='lower left')
 
@@ -780,13 +782,13 @@ report_lines = []
 report_lines.append("="*70)
 report_lines.append("--- AUTOMATED DASHBOARD INTERPRETATION ---")
 report_lines.append(f"--- Report Generated on: {report_time} ---")
-report_lines.append("="*70 + "\n") # <-- This is the line I fixed (was 7Z)
+report_lines.append("="*70 + "\n")
 
 # Helper function for text formatting
 def format_value(key, value):
     if value is None:
         return "N/A"
-    if key in ['baa', 't10yie', 'hy_spread', 't10y2y', 'houst_yoy', 'claims_rise', 'cpata_yoy', 'rrsfs_yoy', 'res_ratio']:
+    if key in ['baa', 't10yie', 'hy_spread', 't10y2y', 'houst_yoy', 'claims_rise', 'cpata_yoy', 'rrsfs_yoy', 'res_ratio', 'new_orders_yoy']:
         return f"{value:.2f}%"
     if key in ['move', 'vix', 'dollar', 'new_orders', 'vix_move_spread']:
         return f"{value:.2f}"
@@ -820,7 +822,8 @@ try:
     # --- Section 4: Leading Economic Indicators ---
     report_lines.append("\n--- 4. LEADING ECONOMIC INDICATORS (Dash 4) ---")
     report_lines.append(f"  Housing Starts (YoY %): {status_results['houst_yoy'][1]} (Value: {format_value('houst_yoy', latest_values['houst_yoy'])})")
-    report_lines.append(f"  Philly Fed New Orders (PMI): {status_results['new_orders'][1]} (Value: {format_value('new_orders', latest_values['new_orders'])})")
+    # *** FIX: Use new_orders_yoy ***
+    report_lines.append(f"  Durable Goods (YoY %): {status_results['new_orders_yoy'][1]} (Value: {format_value('new_orders_yoy', latest_values['new_orders_yoy'])})")
     report_lines.append(f"  Jobless Claims (% from Low): {status_results['claims_rise'][1]} (Value: {format_value('claims_rise', latest_values['claims_rise'])})")
     report_lines.append(f"  High-Yield Spread: {status_results['hy_spread'][1]} (Value: {format_value('hy_spread', latest_values['hy_spread'])})")
 
