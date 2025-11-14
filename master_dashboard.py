@@ -80,7 +80,7 @@ fred_daily_tickers = [
 fred_weekly_tickers = ['WRESBAL', 'TLAACBW027SBOG', 'IC4WSA']
 fred_monthly_tickers = [
     'HOUST', 
-    'DGORDER', # *** FIX: Replaced NEWORDERS with DGORDER (Durable Goods) ***
+    'DGORDER', # Replaced NEWORDERS with DGORDER (Durable Goods)
     'RRSFS'
 ]
 # Quarterly tickers (CPATA) are proprietary and were removed.
@@ -239,7 +239,6 @@ if not claims_data.empty:
     df_leading_risk['CLAIMS_52WK_LOW'] = claims_52wk_low.reindex(df_leading_risk.index, method='ffill')
 df_leading_risk['IC4WSA'] = claims_data.reindex(df_leading_risk.index, method='ffill')
 
-# *** FIX: Calculate YoY for DGORDER ***
 dgorder_monthly = monthly_data_raw['DGORDER'].dropna().asfreq('MS') 
 df_leading_risk['DGORDER_YOY'] = (dgorder_monthly.pct_change(12) * 100).reindex(df_leading_risk.index, method='ffill')
 
@@ -276,7 +275,6 @@ try:
     dollar_mean = df_global_risk['DTWEXBGS'].mean()
     
     latest_values['houst_yoy'] = get_last_value(df_leading_risk['HOUST_YOY'])
-    # *** FIX: Get new DGORDER_YOY value ***
     latest_values['new_orders_yoy'] = get_last_value(df_leading_risk['DGORDER_YOY']) 
     latest_values['claims_rise'] = get_last_value(df_leading_risk['CLAIMS_RISE_PCT'])
 
@@ -301,7 +299,6 @@ try:
     status_results['dollar'] = get_status(latest_values['dollar'], {'red_high': dollar_mean + 10, 'yellow_high': dollar_mean + 5, 'lightgreen_high': dollar_mean, 'blue_low': 0})
 
     status_results['houst_yoy'] = get_status(latest_values['houst_yoy'], {'red_low': -20.0, 'yellow_low': 0, 'lightgreen_high': 100, 'blue_low': 0.01})
-    # *** FIX: New thresholds for DGORDER_YOY ***
     status_results['new_orders_yoy'] = get_status(latest_values['new_orders_yoy'], {'red_low': -5, 'yellow_low': 0, 'lightgreen_high': 100, 'blue_low': 0.01})
     status_results['claims_rise'] = get_status(latest_values['claims_rise'], {'red_high': 40, 'yellow_high': 20, 'lightgreen_high': 10, 'blue_low': -100})
     
@@ -315,117 +312,25 @@ except Exception as e:
     status_results = {k: ('grey', 'Data Error') for k in [
         'baa', 'move', 't10yie', 'vix', 'res_ratio', 'elasticity', 
         'effr_spread', 'sofr_spread', 'hy_spread', 't10y2y', 'nfci', 'dollar',
-        'houst_yoy', 'new_orders_yoy', 'claims_rise', # FIX: 'new_orders_yoy'
+        'houst_yoy', 'new_orders_yoy', 'claims_rise',
         'rrsfs_yoy', 'vix_move_spread'
     ]}
 
 # --- 6. PLOTTING FUNCTIONS ---
 # Functions to create each of the 5 dashboards.
 
-def plot_market_risk_dashboard(data, status, shading): # Added 'shading'
-    print("Generating Dashboard 1: Macro Fear...")
-    fig, axes = plt.subplots(2, 2, figsize=(20, 12), sharex=True)
-    fig.suptitle('Dashboard 1: Macro Fear & Risk', fontsize=20, y=0.98)
-    
-    recessions = [
-        (datetime.datetime(2001, 3, 1), datetime.datetime(2001, 11, 1)),
-        (datetime.datetime(2007, 12, 1), datetime.datetime(2009, 6, 1)),
-        (datetime.datetime(2020, 2, 1), datetime.datetime(2020, 4, 1))
-    ]
-    
-    # Plot 1: Corporate Credit Spreads (BAA10Y)
-    ax = axes[0, 0]
-    status_color, status_text = status['baa']
-    plot_data = data['BAA10Y'].dropna()
-    ax.plot(plot_data.index, plot_data, color='red')
-    ax.set_title("1. Credit Spreads (BAA10Y)", fontsize=14, loc='left')
-    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
-    ax.set_ylabel('Percent')
-    ax.grid(True, linestyle='--', alpha=0.6)
-    mean_val = plot_data.mean()
-    ax.axhline(mean_val, color='black', linestyle='--', linewidth=0.75, alpha=0.7)
-    ax.legend(['Baa Spread', f'Mean: {mean_val:.2f}'], loc='upper left')
-
-    # Plot 2: Bond Market Volatility (MOVE)
-    ax = axes[0, 1]
-    status_color, status_text = status['move']
-    plot_data = data['MOVE'].dropna()
-    ax.plot(plot_data.index, plot_data, color='blue')
-    ax.set_title("2. Bond Volatility (MOVE)", fontsize=14, loc='left')
-    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
-    ax.set_ylabel('Index Value')
-    ax.grid(True, linestyle='--', alpha=0.6)
-    ax.axhline(120, color='black', linestyle='--', linewidth=0.75, alpha=0.7)
-    ax.legend(['MOVE Index', 'High Stress (120)'], loc='upper left')
-
-    # Plot 3: Inflation Expectations (T10YIE)
-    ax = axes[1, 0]
-    status_color, status_text = status['t10yie']
-    plot_data = data['T10YIE'].dropna()
-    ax.plot(plot_data.index, plot_data, color='green')
-    ax.set_title("3. Inflation Expectations (T10YIE)", fontsize=14, loc='left')
-    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
-    ax.set_ylabel('Percent')
-    ax.grid(True, linestyle='--', alpha=0.6)
-    ax.axhline(2.0, color='black', linestyle='--', linewidth=0.75, alpha=0.7)
-    ax.axhline(3.0, color='black', linestyle='--', linewidth=0.75, alpha=0.7)
-    ax.legend(['10Y Breakeven', '2.0% Level', '3.0% Level'], loc='upper left')
-    
-    # Plot 4: Stock Market Volatility (VIX)
-    ax = axes[1, 1]
-    status_color, status_text = status['vix']
-    plot_data = data['VIX'].dropna()
-    ax.plot(plot_data.index, plot_data, color='purple')
-    ax.set_title('4. Stock Volatility (VIX)', fontsize=14, loc='left')
-    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
-    ax.set_ylabel('VIX Index')
-    ax.grid(True, linestyle='--', alpha=0.6)
-    ax.axhline(30, color='red', linestyle='--', linewidth=1.5, label='30 (Extreme Fear)')
-    ax.axhline(20, color='orange', linestyle='--', linewidth=1.0, label='20 (Fear)')
-    ax.legend(loc='upper left')
-    
-    # Common formatting for this figure
-    for ax_row in axes:
-        for ax in ax_row:
-            for start, end in recessions:
-                ax.axvspan(start, end, color='grey', alpha=0.2)
-            
-            # --- ADDED DYNAMIC SHADING BLOCK ---
-            if shading['available']:
-                bottom, top = ax.get_ylim()
-                ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['correction'],
-                                facecolor='orange', alpha=0.3, zorder=0)
-                ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['decline'],
-                                facecolor='red', alpha=0.3, zorder=0)
-                ax.set_ylim(bottom, top) # Reset ylim
-            
-            # Add Repo Spike for consistency
-            ax.axvspan(datetime.datetime(2019, 9, 16), datetime.datetime(2019, 9, 20),
-                       alpha=0.3, color='blue', zorder=0)
-            # --- END OF ADDED BLOCK ---
-            
-            ax.set_xlim(start_date_long, end_date)
-            ax.xaxis.set_major_locator(mdates.YearLocator(2))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
-            ax.set_xlabel('Date')
-    
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    return fig
-
 def plot_liquidity_dashboard(daily_data, weekly_data, elasticity, asset_data, shading, status):
-    print("Generating Dashboard 2: Liquidity & Plumbing...")
+    print("Generating Dashboard 1: Liquidity & Plumbing...")
     fig, axes = plt.subplots(2, 2, figsize=(24, 16))
-    fig.suptitle('Dashboard 2: Monetary Analysis & Liquidity', fontsize=24, y=1.0)
+    fig.suptitle('Dashboard 1: Monetary Analysis & Liquidity', fontsize=24, y=1.0)
 
-    # --- PLOT [0, 0]: FIGURE 5 (Bank Reserve Levels) ---
+    # --- PLOT [0, 0]: FIGURE 1 (Bank Reserve Levels) ---
     ax = axes[0, 0]
     status_color, status_text = status['res_ratio']
     data = weekly_data['RESERVE_RATIO_PCT'].dropna()
     ax.plot(data.index, data, color='blue', label='Reserves / Bank Assets')
-    # *** THIS IS THE LINE YOU ASKED FOR ***
     ax.axhspan(12, 13, color='grey', alpha=0.3, label='Reserve Scarcity Zone')
-    # ***
-    ax.set_title('5. Bank Reserve Levels', fontsize=14, loc='left')
+    ax.set_title('1. Bank Reserve Levels', fontsize=14, loc='left')
     ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
     ax.set_ylabel('Reserves as % of Bank Assets', color='blue')
     ax.grid(True, linestyle='--', alpha=0.6)
@@ -439,10 +344,10 @@ def plot_liquidity_dashboard(daily_data, weekly_data, elasticity, asset_data, sh
         h2, l2 = ax_twin.get_legend_handles_labels()
         ax.legend(handles=h1 + h2, labels=l1 + l2, loc='upper left', fontsize='small')
 
-    # --- PLOT [0, 1]: FIGURE 6 (System Regime) ---
+    # --- PLOT [0, 1]: FIGURE 2 (System Regime) ---
     ax = axes[0, 1]
     status_color, status_text = status['elasticity']
-    ax.set_title('6. System Regime (Elasticity)', fontsize=14, loc='left')
+    ax.set_title('2. System Regime (Elasticity)', fontsize=14, loc='left')
     ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
     
     colors = ['green', 'blue', 'red'] # Fast, Medium, Slow
@@ -460,14 +365,14 @@ def plot_liquidity_dashboard(daily_data, weekly_data, elasticity, asset_data, sh
     ax.grid(True, linestyle='--', alpha=0.6)
     ax.legend(loc='upper left', fontsize='small')
 
-    # --- PLOT [1, 0]: FIGURE 7 (Unsecured Stress) ---
+    # --- PLOT [1, 0]: FIGURE 3 (Unsecured Stress) ---
     ax = axes[1, 0]
     status_color, status_text = status['hy_spread']
     data_effr = daily_data['EFFR_Spread'].dropna()
     data_effr_ma = data_effr.rolling(window=30).mean()
     ax.plot(data_effr.index, data_effr, color='red', label='Daily EFFR Spread', linewidth=0.5, alpha=0.6)
     ax.plot(data_effr_ma.index, data_effr_ma, color='red', label='30-Day MA EFFR Spread', linewidth=2.5, linestyle='--')
-    ax.set_title('7. Unsecured & Corp Stress', fontsize=14, loc='left')
+    ax.set_title('3. Unsecured & Corp Stress', fontsize=14, loc='left')
     ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
     ax.set_ylabel('EFFR Spread (Bps)', color='red')
     ax.axhline(0, color='black', linewidth=0.5, linestyle='--')
@@ -482,7 +387,7 @@ def plot_liquidity_dashboard(daily_data, weekly_data, elasticity, asset_data, sh
         h2, l2 = ax_twin.get_legend_handles_labels()
         ax.legend(handles=h1 + h2, labels=l1 + l2, loc='upper left', fontsize='small')
 
-    # --- PLOT [1, 1]: FIGURE 8 (Secured Corridor) ---
+    # --- PLOT [1, 1]: FIGURE 4 (Secured Corridor) ---
     ax = axes[1, 1]
     status_color, status_text = status['sofr_spread']
     data_sofr = daily_data['SOFR_Spread'].dropna()
@@ -492,7 +397,7 @@ def plot_liquidity_dashboard(daily_data, weekly_data, elasticity, asset_data, sh
     ax.plot(data_sofr.index, data_sofr, label='SOFR (Daily)', linewidth=0.5, color='red', alpha=0.6)
     ax.plot(data_sofr_ma.index, data_sofr_ma, label='SOFR (30-Day MA)', linewidth=2.5, color='red', linestyle='--')
     ax.axhline(0, color='black', linewidth=0.5, linestyle='-')
-    ax.set_title('8. Secured Market (Corridor)', fontsize=14, loc='left')
+    ax.set_title('4. Secured Market (Corridor)', fontsize=14, loc='left')
     ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
     ax.set_ylabel('Spread (Basis Points)')
     ax.grid(True, linestyle='--', alpha=0.6)
@@ -520,196 +425,97 @@ def plot_liquidity_dashboard(daily_data, weekly_data, elasticity, asset_data, sh
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     return fig
 
-def plot_global_risk_dashboard(data, status, shading): # Added 'shading'
-    print("Generating Dashboard 3: Global & Leading Risk...")
-    fig, axes = plt.subplots(2, 2, figsize=(20, 12))
-    fig.suptitle('Dashboard 3: Global Risk & Recession Indicators', fontsize=20, y=0.98)
+def plot_market_risk_dashboard(data, status, shading):
+    print("Generating Dashboard 2: Macro Fear...")
+    fig, axes = plt.subplots(2, 2, figsize=(20, 12), sharex=True)
+    fig.suptitle('Dashboard 2: Macro Fear & Risk', fontsize=20, y=0.98)
     
     recessions = [
         (datetime.datetime(2001, 3, 1), datetime.datetime(2001, 11, 1)),
         (datetime.datetime(2007, 12, 1), datetime.datetime(2009, 6, 1)),
         (datetime.datetime(2020, 2, 1), datetime.datetime(2020, 4, 1))
     ]
-
-    # Plot 9: Yield Curve (T10Y2Y)
+    
+    # Plot 5: Corporate Credit Spreads (BAA10Y)
     ax = axes[0, 0]
-    status_color, status_text = status['t10y2y']
-    plot_data = data['T10Y2Y'].dropna()
-    ax.plot(plot_data.index, plot_data, color='blue', label='10Y-2Y Spread')
-    ax.axhline(0, color='red', linestyle='--', linewidth=1.5, label='0 (Inversion Line)')
-    ax.fill_between(plot_data.index, plot_data, 0, where=plot_data < 0, color='red', alpha=0.3, label='Yield Curve Inversion')
-    ax.set_title('9. Yield Curve (Recession)', fontsize=14, loc='left')
+    status_color, status_text = status['baa']
+    plot_data = data['BAA10Y'].dropna()
+    ax.plot(plot_data.index, plot_data, color='red')
+    ax.set_title("5. Credit Spreads (BAA10Y)", fontsize=14, loc='left')
     ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
-    ax.set_ylabel('Yield Spread (%)')
+    ax.set_ylabel('Percent')
     ax.grid(True, linestyle='--', alpha=0.6)
-    ax.legend(loc='upper left')
-
-    # Plot 10: Financial Conditions (NFCI)
-    ax = axes[0, 1]
-    status_color, status_text = status['nfci']
-    plot_data = data['NFCI'].dropna()
-    ax.plot(plot_data.index, plot_data, color='green', label='NFCI Index')
-    ax.axhline(0, color='red', linestyle='--', linewidth=1.5, label='0 (Tight/Loose Line)')
-    ax.fill_between(plot_data.index, 0, plot_data, where=plot_data > 0, color='red', alpha=0.3, label='Tight Financial Conditions')
-    ax.set_title('10. Financial Conditions (NFCI)', fontsize=14, loc='left')
-    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
-    ax.set_ylabel('Std. Deviations from Average')
-    ax.grid(True, linestyle='--', alpha=0.6)
-    ax.legend(loc='upper left')
-
-    # Plot 11: Dollar Index (DTWEXBGS)
-    ax = axes[1, 0]
-    status_color, status_text = status['dollar']
-    plot_data = data['DTWEXBGS'].dropna()
-    ax.plot(plot_data.index, plot_data, color='orange', label='Trade-Weighted Dollar Index')
     mean_val = plot_data.mean()
-    ax.axhline(mean_val, color='black', linestyle='--', linewidth=1.0, label=f'Average ({mean_val:.2f})')
-    ax.set_title('11. Dollar Index (Global Flow)', fontsize=14, loc='left')
-    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
-    ax.set_ylabel('Index (Broad, Goods & Services)')
-    ax.grid(True, linestyle='--', alpha=0.6)
-    ax.legend(loc='upper left')
-    
-    # Plot [1, 1]: Empty for Legend
-    ax = axes[1, 1]
-    ax.axis('off') # Turn off the plot
-    
-    patch_decline = mpatches.Patch(color='red', alpha=0.3, label='Recession / S&P -20%')
-    patch_correction = mpatches.Patch(color='orange', alpha=0.3, label='S&P -10% Correction')
-    patch_repo_spike = mpatches.Patch(color='blue', alpha=0.3, label='Repo Spike 2019')
-    shading_handles = [patch_decline, patch_correction, patch_repo_spike]
-    ax.legend(handles=shading_handles, labels=[h.get_label() for h in shading_handles],
-              loc='center', fontsize='large', title='Master Legend')
+    ax.axhline(mean_val, color='black', linestyle='--', linewidth=0.75, alpha=0.7)
+    ax.legend(['Baa Spread', f'Mean: {mean_val:.2f}'], loc='upper left')
 
-    # Common formatting
-    for ax_row in axes:
-        for ax in ax_row:
-            if ax == axes[1, 1]: continue 
-            for start, end in recessions:
-                ax.axvspan(start, end, color='grey', alpha=0.2)
-            
-            # --- ADDED DYNAMIC SHADING BLOCK ---
-            if shading['available']:
-                bottom, top = ax.get_ylim()
-                ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['correction'],
-                                facecolor='orange', alpha=0.3, zorder=0)
-                ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['decline'],
-                                facecolor='red', alpha=0.3, zorder=0)
-                ax.set_ylim(bottom, top) # Reset ylim
-            
-            # Add Repo Spike for consistency
-            ax.axvspan(datetime.datetime(2019, 9, 16), datetime.datetime(2019, 9, 20),
-                       alpha=0.3, color='blue', zorder=0)
-            # --- END OF ADDED BLOCK ---
-            
-            ax.set_xlim(start_date_long, end_date)
-            ax.xaxis.set_major_locator(mdates.YearLocator(2))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
-            ax.set_xlabel('Date')
-
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
-    return fig
-
-def plot_leading_indicators_dashboard(data, daily_data, status, shading): # Added 'shading'
-    print("Generating Dashboard 4: Leading Economic Indicators...")
-    fig, axes = plt.subplots(2, 2, figsize=(20, 12))
-    fig.suptitle('Dashboard 4: Leading Economic Indicators (Recession)', fontsize=20, y=0.98)
-    
-    recessions = [
-        (datetime.datetime(2001, 3, 1), datetime.datetime(2001, 11, 1)),
-        (datetime.datetime(2007, 12, 1), datetime.datetime(2009, 6, 1)),
-        (datetime.datetime(2020, 2, 1), datetime.datetime(2020, 4, 1))
-    ]
-
-    # Plot 12: Housing Starts Year-over-Year
-    ax = axes[0, 0]
-    status_color, status_text = status['houst_yoy']
-    plot_data = data['HOUST_YOY'].dropna()
-    ax.plot(plot_data.index, plot_data, color='purple', label='Housing Starts % Change (YoY)')
-    ax.axhline(0, color='black', linestyle='--', linewidth=1.0)
-    ax.axhline(-20.0, color='red', linestyle='--', linewidth=1.5, label='-20% (Recession Signal)')
-    ax.fill_between(plot_data.index, plot_data, 0, where=plot_data < 0, color='yellow', alpha=0.3, label='Contraction')
-    ax.fill_between(plot_data.index, plot_data, -20.0, where=plot_data < -20.0, color='red', alpha=0.3, label='Recession Signal')
-    ax.set_title('12. Housing Starts (YoY)', fontsize=14, loc='left')
-    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
-    ax.set_ylabel('Percent Change (%)')
-    ax.grid(True, linestyle='--', alpha=0.6)
-    ax.legend(loc='lower left')
-
-    # *** FIX: Plot 13 updated to DGORDER_YOY ***
+    # Plot 6: Bond Market Volatility (MOVE)
     ax = axes[0, 1]
-    status_color, status_text = status['new_orders_yoy']
-    plot_data = data['DGORDER_YOY'].dropna() 
-    ax.plot(plot_data.index, plot_data, color='orange', label='Durable Goods New Orders % Change (YoY)')
-    ax.axhline(0, color='black', linestyle='--', linewidth=1.0, label='0 (Growth/Contraction)')
-    ax.axhline(-5, color='red', linestyle='--', linewidth=1.5, label='-5 (Recession Signal)')
-    ax.fill_between(plot_data.index, plot_data, 0, where=plot_data < 0, color='yellow', alpha=0.3, label='Contraction')
-    ax.fill_between(plot_data.index, plot_data, -5, where=plot_data < -5, color='red', alpha=0.3, label='Recession Signal')
-    ax.set_title('13. Durable Goods New Orders (YoY)', fontsize=14, loc='left')
+    status_color, status_text = status['move']
+    plot_data = data['MOVE'].dropna()
+    ax.plot(plot_data.index, plot_data, color='blue')
+    ax.set_title("6. Bond Volatility (MOVE)", fontsize=14, loc='left')
     ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
-    ax.set_ylabel('Percent Change (YoY)')
+    ax.set_ylabel('Index Value')
     ax.grid(True, linestyle='--', alpha=0.6)
-    ax.legend(loc='lower left')
+    ax.axhline(120, color='black', linestyle='--', linewidth=0.75, alpha=0.7)
+    ax.legend(['MOVE Index', 'High Stress (120)'], loc='upper left')
 
-    # Plot 14: Initial Jobless Claims
+    # Plot 7: Inflation Expectations (T10YIE)
     ax = axes[1, 0]
-    status_color, status_text = status['claims_rise']
-    plot_data = data['IC4WSA'].dropna()
-    plot_data_low = data['CLAIMS_52WK_LOW'].dropna()
-    ax.plot(plot_data.index, plot_data, color='blue', label='Jobless Claims (4-Wk MA)')
-    ax.plot(plot_data_low.index, plot_data_low, color='green', linestyle='--', label='52-Week Low')
-    ax.set_title('14. Initial Jobless Claims', fontsize=14, loc='left')
+    status_color, status_text = status['t10yie']
+    plot_data = data['T10YIE'].dropna()
+    ax.plot(plot_data.index, plot_data, color='green')
+    ax.set_title("7. Inflation Expectations (T10YIE)", fontsize=14, loc='left')
     ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
-    ax.set_ylabel('Number of Claims')
+    ax.set_ylabel('Percent')
     ax.grid(True, linestyle='--', alpha=0.6)
+    ax.axhline(2.0, color='black', linestyle='--', linewidth=0.75, alpha=0.7)
+    ax.axhline(3.0, color='black', linestyle='--', linewidth=0.75, alpha=0.7)
+    ax.legend(['10Y Breakeven', '2.0% Level', '3.0% Level'], loc='upper left')
+    
+    # Plot 8: Stock Market Volatility (VIX)
+    ax = axes[1, 1]
+    status_color, status_text = status['vix']
+    plot_data = data['VIX'].dropna()
+    ax.plot(plot_data.index, plot_data, color='purple')
+    ax.set_title('8. Stock Volatility (VIX)', fontsize=14, loc='left')
+    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
+    ax.set_ylabel('VIX Index')
+    ax.grid(True, linestyle='--', alpha=0.6)
+    ax.axhline(30, color='red', linestyle='--', linewidth=1.5, label='30 (Extreme Fear)')
+    ax.axhline(20, color='orange', linestyle='--', linewidth=1.0, label='20 (Fear)')
     ax.legend(loc='upper left')
     
-    # Plot 15: High-Yield Spread
-    ax = axes[1, 1]
-    status_color, status_text = status['hy_spread']
-    plot_data = daily_data['BAMLH0A0HYM2'].dropna()
-    ax.plot(plot_data.index, plot_data, color='purple', linestyle='--', label='High-Yield Spread (%)')
-    ax.set_title('15. High-Yield Spread', fontsize=14, loc='left')
-    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
-    ax.set_ylabel('High-Yield Spread (%)')
-    ax.grid(True, linestyle='--', alpha=0.6)
-    ax.axhline(4.5, color='orange', linestyle='--', linewidth=1.0, label='4.5 (Warning)')
-    ax.axhline(6.0, color='red', linestyle='--', linewidth=1.5, label='6.0 (High Risk)')
-    ax.legend(loc='upper left')
-
-    # Common formatting
+    # Common formatting for this figure
     for ax_row in axes:
         for ax in ax_row:
             for start, end in recessions:
                 ax.axvspan(start, end, color='grey', alpha=0.2)
-
-            # --- ADDED DYNAMIC SHADING BLOCK ---
+            
             if shading['available']:
                 bottom, top = ax.get_ylim()
                 ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['correction'],
                                 facecolor='orange', alpha=0.3, zorder=0)
                 ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['decline'],
                                 facecolor='red', alpha=0.3, zorder=0)
-                ax.set_ylim(bottom, top) # Reset ylim
+                ax.set_ylim(bottom, top) 
             
-            # Add Repo Spike for consistency
             ax.axvspan(datetime.datetime(2019, 9, 16), datetime.datetime(2019, 9, 20),
                        alpha=0.3, color='blue', zorder=0)
-            # --- END OF ADDED BLOCK ---
-
+            
             ax.set_xlim(start_date_long, end_date)
             ax.xaxis.set_major_locator(mdates.YearLocator(2))
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
             ax.set_xlabel('Date')
-
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
-    return fig
     
-def plot_earnings_consumer_dashboard(data, market_data, status, shading): # Added 'shading'
-    print("Generating Dashboard 5: Consumer & Risk Appetite...")
-    # Changed to 1x3 plot (2 charts + 1 legend)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    return fig
+
+def plot_consumer_risk_dashboard(data, market_data, status, shading):
+    print("Generating Dashboard 3: Consumer & Risk Appetite...")
     fig, axes = plt.subplots(1, 3, figsize=(24, 8)) 
-    fig.suptitle('Dashboard 5: Consumer Health & Risk Appetite', fontsize=20, y=1.02)
+    fig.suptitle('Dashboard 3: Consumer Health & Risk Appetite', fontsize=20, y=1.02)
     
     recessions = [
         (datetime.datetime(2001, 3, 1), datetime.datetime(2001, 11, 1)),
@@ -717,20 +523,20 @@ def plot_earnings_consumer_dashboard(data, market_data, status, shading): # Adde
         (datetime.datetime(2020, 2, 1), datetime.datetime(2020, 4, 1))
     ]
 
-    # --- Plot [0, 0]: FIGURE 16 (Real Retail Sales) ---
+    # --- Plot [0, 0]: FIGURE 9 (Real Retail Sales) ---
     ax = axes[0] # First plot
     status_color, status_text = status['rrsfs_yoy']
     plot_data = data['RRSFS_YOY'].dropna()
     ax.plot(plot_data.index, plot_data, color='orange', label='Real Retail Sales % Change (YoY)')
     ax.axhline(0, color='red', linestyle='--', linewidth=1.5, label='0 (Contraction)')
     ax.fill_between(plot_data.index, plot_data, 0, where=plot_data < 0, color='red', alpha=0.3, label='Contraction')
-    ax.set_title('16. Real Retail Sales (YoY)', fontsize=14, loc='left')
+    ax.set_title('9. Real Retail Sales (YoY)', fontsize=14, loc='left')
     ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
     ax.set_ylabel('Percent Change (%)')
     ax.grid(True, linestyle='--', alpha=0.6)
     ax.legend(loc='lower left')
     
-    # --- Plot [0, 1]: FIGURE 17 (VIX-MOVE Spread) ---
+    # --- Plot [0, 1]: FIGURE 10 (VIX-MOVE Spread) ---
     ax = axes[1] # Second plot
     status_color, status_text = status['vix_move_spread']
     plot_data = market_data['VIX_MOVE_SPREAD'].dropna()
@@ -740,7 +546,7 @@ def plot_earnings_consumer_dashboard(data, market_data, status, shading): # Adde
     ax.axhline(-20, color='red', linestyle='--', linewidth=1.5, label='-20 (Systemic Risk)')
     ax.fill_between(plot_data.index, plot_data, 0, where=plot_data < 0, color='yellow', alpha=0.3)
     ax.fill_between(plot_data.index, plot_data, -10, where=plot_data < -10, color='red', alpha=0.3)
-    ax.set_title('17. VIX-MOVE Spread (Risk Appetite)', fontsize=14, loc='left')
+    ax.set_title('10. VIX-MOVE Spread (Risk Appetite)', fontsize=14, loc='left')
     ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
     ax.set_ylabel('Spread (VIX - MOVE)')
     ax.grid(True, linestyle='--', alpha=0.6)
@@ -761,19 +567,16 @@ def plot_earnings_consumer_dashboard(data, market_data, status, shading): # Adde
         for start, end in recessions:
             ax.axvspan(start, end, color='grey', alpha=0.2)
         
-        # --- ADDED DYNAMIC SHADING BLOCK ---
         if shading['available']:
             bottom, top = ax.get_ylim()
             ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['correction'],
                             facecolor='orange', alpha=0.3, zorder=0)
             ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['decline'],
                             facecolor='red', alpha=0.3, zorder=0)
-            ax.set_ylim(bottom, top) # Reset ylim
+            ax.set_ylim(bottom, top) 
         
-        # Add Repo Spike for consistency
         ax.axvspan(datetime.datetime(2019, 9, 16), datetime.datetime(2019, 9, 20),
                    alpha=0.3, color='blue', zorder=0)
-        # --- END OF ADDED BLOCK ---
         
         ax.set_xlim(start_date_long, end_date)
         ax.xaxis.set_major_locator(mdates.YearLocator(2))
@@ -783,6 +586,178 @@ def plot_earnings_consumer_dashboard(data, market_data, status, shading): # Adde
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     return fig
 
+def plot_global_risk_dashboard(data, status, shading):
+    print("Generating Dashboard 4: Global & Leading Risk...")
+    fig, axes = plt.subplots(2, 2, figsize=(20, 12))
+    fig.suptitle('Dashboard 4: Global Risk & Recession Indicators', fontsize=20, y=0.98)
+    
+    recessions = [
+        (datetime.datetime(2001, 3, 1), datetime.datetime(2001, 11, 1)),
+        (datetime.datetime(2007, 12, 1), datetime.datetime(2009, 6, 1)),
+        (datetime.datetime(2020, 2, 1), datetime.datetime(2020, 4, 1))
+    ]
+
+    # Plot 11: Yield Curve (T10Y2Y)
+    ax = axes[0, 0]
+    status_color, status_text = status['t10y2y']
+    plot_data = data['T10Y2Y'].dropna()
+    ax.plot(plot_data.index, plot_data, color='blue', label='10Y-2Y Spread')
+    ax.axhline(0, color='red', linestyle='--', linewidth=1.5, label='0 (Inversion Line)')
+    ax.fill_between(plot_data.index, plot_data, 0, where=plot_data < 0, color='red', alpha=0.3, label='Yield Curve Inversion')
+    ax.set_title('11. Yield Curve (Recession)', fontsize=14, loc='left')
+    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
+    ax.set_ylabel('Yield Spread (%)')
+    ax.grid(True, linestyle='--', alpha=0.6)
+    ax.legend(loc='upper left')
+
+    # Plot 12: Financial Conditions (NFCI)
+    ax = axes[0, 1]
+    status_color, status_text = status['nfci']
+    plot_data = data['NFCI'].dropna()
+    ax.plot(plot_data.index, plot_data, color='green', label='NFCI Index')
+    ax.axhline(0, color='red', linestyle='--', linewidth=1.5, label='0 (Tight/Loose Line)')
+    ax.fill_between(plot_data.index, 0, plot_data, where=plot_data > 0, color='red', alpha=0.3, label='Tight Financial Conditions')
+    ax.set_title('12. Financial Conditions (NFCI)', fontsize=14, loc='left')
+    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
+    ax.set_ylabel('Std. Deviations from Average')
+    ax.grid(True, linestyle='--', alpha=0.6)
+    ax.legend(loc='upper left')
+
+    # Plot 13: Dollar Index (DTWEXBGS)
+    ax = axes[1, 0]
+    status_color, status_text = status['dollar']
+    plot_data = data['DTWEXBGS'].dropna()
+    ax.plot(plot_data.index, plot_data, color='orange', label='Trade-Weighted Dollar Index')
+    mean_val = plot_data.mean()
+    ax.axhline(mean_val, color='black', linestyle='--', linewidth=1.0, label=f'Average ({mean_val:.2f})')
+    ax.set_title('13. Dollar Index (Global Flow)', fontsize=14, loc='left')
+    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
+    ax.set_ylabel('Index (Broad, Goods & Services)')
+    ax.grid(True, linestyle='--', alpha=0.6)
+    ax.legend(loc='upper left')
+    
+    # Plot [1, 1]: Empty / Placeholder
+    ax = axes[1, 1]
+    ax.axis('off') 
+
+    # Common formatting
+    for ax_row in axes:
+        for ax in ax_row:
+            if ax == axes[1, 1]: continue 
+            for start, end in recessions:
+                ax.axvspan(start, end, color='grey', alpha=0.2)
+            
+            if shading['available']:
+                bottom, top = ax.get_ylim()
+                ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['correction'],
+                                facecolor='orange', alpha=0.3, zorder=0)
+                ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['decline'],
+                                facecolor='red', alpha=0.3, zorder=0)
+                ax.set_ylim(bottom, top) 
+            
+            ax.axvspan(datetime.datetime(2019, 9, 16), datetime.datetime(2019, 9, 20),
+                       alpha=0.3, color='blue', zorder=0)
+            
+            ax.set_xlim(start_date_long, end_date)
+            ax.xaxis.set_major_locator(mdates.YearLocator(2))
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+            ax.set_xlabel('Date')
+
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    return fig
+
+def plot_leading_indicators_dashboard(data, daily_data, status, shading):
+    print("Generating Dashboard 5: Leading Economic Indicators...")
+    fig, axes = plt.subplots(2, 2, figsize=(20, 12))
+    fig.suptitle('Dashboard 5: Leading Economic Indicators (Recession)', fontsize=20, y=0.98)
+    
+    recessions = [
+        (datetime.datetime(2001, 3, 1), datetime.datetime(2001, 11, 1)),
+        (datetime.datetime(2007, 12, 1), datetime.datetime(2009, 6, 1)),
+        (datetime.datetime(2020, 2, 1), datetime.datetime(2020, 4, 1))
+    ]
+
+    # Plot 14: Housing Starts Year-over-Year
+    ax = axes[0, 0]
+    status_color, status_text = status['houst_yoy']
+    plot_data = data['HOUST_YOY'].dropna()
+    ax.plot(plot_data.index, plot_data, color='purple', label='Housing Starts % Change (YoY)')
+    ax.axhline(0, color='black', linestyle='--', linewidth=1.0)
+    ax.axhline(-20.0, color='red', linestyle='--', linewidth=1.5, label='-20% (Recession Signal)')
+    ax.fill_between(plot_data.index, plot_data, 0, where=plot_data < 0, color='yellow', alpha=0.3, label='Contraction')
+    ax.fill_between(plot_data.index, plot_data, -20.0, where=plot_data < -20.0, color='red', alpha=0.3, label='Recession Signal')
+    ax.set_title('14. Housing Starts (YoY)', fontsize=14, loc='left')
+    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
+    ax.set_ylabel('Percent Change (%)')
+    ax.grid(True, linestyle='--', alpha=0.6)
+    ax.legend(loc='lower left')
+
+    # Plot 15: Durable Goods New Orders (YoY)
+    ax = axes[0, 1]
+    status_color, status_text = status['new_orders_yoy']
+    plot_data = data['DGORDER_YOY'].dropna() 
+    ax.plot(plot_data.index, plot_data, color='orange', label='Durable Goods New Orders % Change (YoY)')
+    ax.axhline(0, color='black', linestyle='--', linewidth=1.0, label='0 (Growth/Contraction)')
+    ax.axhline(-5, color='red', linestyle='--', linewidth=1.5, label='-5 (Recession Signal)')
+    ax.fill_between(plot_data.index, plot_data, 0, where=plot_data < 0, color='yellow', alpha=0.3, label='Contraction')
+    ax.fill_between(plot_data.index, plot_data, -5, where=plot_data < -5, color='red', alpha=0.3, label='Recession Signal')
+    ax.set_title('15. Durable Goods New Orders (YoY)', fontsize=14, loc='left')
+    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
+    ax.set_ylabel('Percent Change (YoY)')
+    ax.grid(True, linestyle='--', alpha=0.6)
+    ax.legend(loc='lower left')
+
+    # Plot 16: Initial Jobless Claims
+    ax = axes[1, 0]
+    status_color, status_text = status['claims_rise']
+    plot_data = data['IC4WSA'].dropna()
+    plot_data_low = data['CLAIMS_52WK_LOW'].dropna()
+    ax.plot(plot_data.index, plot_data, color='blue', label='Jobless Claims (4-Wk MA)')
+    ax.plot(plot_data_low.index, plot_data_low, color='green', linestyle='--', label='52-Week Low')
+    ax.set_title('16. Initial Jobless Claims', fontsize=14, loc='left')
+    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
+    ax.set_ylabel('Number of Claims')
+    ax.grid(True, linestyle='--', alpha=0.6)
+    ax.legend(loc='upper left')
+    
+    # Plot 17: High-Yield Spread
+    ax = axes[1, 1]
+    status_color, status_text = status['hy_spread']
+    plot_data = daily_data['BAMLH0A0HYM2'].dropna()
+    ax.plot(plot_data.index, plot_data, color='purple', linestyle='--', label='High-Yield Spread (%)')
+    ax.set_title('17. High-Yield Spread', fontsize=14, loc='left')
+    ax.set_title(f"● {status_text}", fontsize=12, color=status_color, loc='right')
+    ax.set_ylabel('High-Yield Spread (%)')
+    ax.grid(True, linestyle='--', alpha=0.6)
+    ax.axhline(4.5, color='orange', linestyle='--', linewidth=1.0, label='4.5 (Warning)')
+    ax.axhline(6.0, color='red', linestyle='--', linewidth=1.5, label='6.0 (High Risk)')
+    ax.legend(loc='upper left')
+
+    # Common formatting
+    for ax_row in axes:
+        for ax in ax_row:
+            for start, end in recessions:
+                ax.axvspan(start, end, color='grey', alpha=0.2)
+
+            if shading['available']:
+                bottom, top = ax.get_ylim()
+                ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['correction'],
+                                facecolor='orange', alpha=0.3, zorder=0)
+                ax.fill_between(shading['drawdown'].index, bottom, top, where=shading['decline'],
+                                facecolor='red', alpha=0.3, zorder=0)
+                ax.set_ylim(bottom, top) 
+            
+            ax.axvspan(datetime.datetime(2019, 9, 16), datetime.datetime(2019, 9, 20),
+                       alpha=0.3, color='blue', zorder=0)
+
+            ax.set_xlim(start_date_long, end_date)
+            ax.xaxis.set_major_locator(mdates.YearLocator(2))
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+            ax.set_xlabel('Date')
+
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    return fig
+    
 
 # --- 7. MAIN EXECUTION BLOCK ---
 print("--- Generating All Dashboards ---")
@@ -795,26 +770,27 @@ shading_data = {
     'decline': in_decline if dynamic_shading_available else None
 }
 
-# --- Create all five figures ---
-print("Generating and saving Dashboard 1 (Macro Fear)...")
-fig1 = plot_market_risk_dashboard(df_market_risk, status_results, shading_data) # Added shading_data
-fig1.savefig('dashboard_1_market_risk.png', dpi=150, bbox_inches='tight')
+# --- Create all five figures in the new order ---
 
-print("Generating and saving Dashboard 2 (Liquidity)...")
-fig2 = plot_liquidity_dashboard(daily_data_liq, weekly_data_liq, elasticity_df, asset_norm, shading_data, status_results)
-fig2.savefig('dashboard_2_liquidity.png', dpi=150, bbox_inches='tight')
+print("Generating and saving Dashboard 1 (Liquidity)...")
+fig1 = plot_liquidity_dashboard(daily_data_liq, weekly_data_liq, elasticity_df, asset_norm, shading_data, status_results)
+fig1.savefig('dashboard_1_liquidity.png', dpi=150, bbox_inches='tight')
 
-print("Generating and saving Dashboard 3 (Global Risk)...")
-fig3 = plot_global_risk_dashboard(df_global_risk, status_results, shading_data) # Added shading_data
-fig3.savefig('dashboard_3_global_risk.png', dpi=150, bbox_inches='tight')
+print("Generating and saving Dashboard 2 (Macro Fear)...")
+fig2 = plot_market_risk_dashboard(df_market_risk, status_results, shading_data)
+fig2.savefig('dashboard_2_macro_fear.png', dpi=150, bbox_inches='tight')
 
-print("Generating and saving Dashboard 4 (Leading Indicators)...")
-fig4 = plot_leading_indicators_dashboard(df_leading_risk, daily_data_raw, status_results, shading_data) # Added shading_data
-fig4.savefig('dashboard_4_leading_risk.png', dpi=150, bbox_inches='tight')
+print("Generating and saving Dashboard 3 (Consumer & Risk Appetite)...")
+fig3 = plot_consumer_risk_dashboard(df_earnings_consumer, df_market_risk, status_results, shading_data)
+fig3.savefig('dashboard_3_consumer_risk.png', dpi=150, bbox_inches='tight')
 
-print("Generating and saving Dashboard 5 (Consumer & Risk Appetite)...")
-fig5 = plot_earnings_consumer_dashboard(df_earnings_consumer, df_market_risk, status_results, shading_data) # Added shading_data
-fig5.savefig('dashboard_5_earnings_consumer.png', dpi=150, bbox_inches='tight')
+print("Generating and saving Dashboard 4 (Global Risk)...")
+fig4 = plot_global_risk_dashboard(df_global_risk, status_results, shading_data)
+fig4.savefig('dashboard_4_global_risk.png', dpi=150, bbox_inches='tight')
+
+print("Generating and saving Dashboard 5 (Leading Indicators)...")
+fig5 = plot_leading_indicators_dashboard(df_leading_risk, daily_data_raw, status_results, shading_data)
+fig5.savefig('dashboard_5_leading_eco.png', dpi=150, bbox_inches='tight')
 
 
 # --- Show plots *after* saving ---
@@ -859,39 +835,37 @@ def format_value(key, value):
     return f"{value}"
 
 try:
-    # --- Section 1: Macro & Fear ---
-    report_lines.append("--- 1. MACRO RISK & FEAR (Dash 1) ---")
-    report_lines.append(f"  Credit Spreads (BAA10Y): {status_results['baa'][1]} (Value: {format_value('baa', latest_values['baa'])})")
-    report_lines.append(f"  Stock Volatility (VIX): {status_results['vix'][1]} (Value: {format_value('vix', latest_values['vix'])})")
-    report_lines.append(f"  Bond Volatility (MOVE): {status_results['move'][1]} (Value: {format_value('move', latest_values['move'])})")
-    report_lines.append(f"  Inflation Expectations: {status_results['t10yie'][1]} (Value: {format_value('t10yie', latest_values['t10yie'])})")
-
-    # --- Section 2: Liquidity & Plumbing ---
-    report_lines.append("\n--- 2. LIQUIDITY & SYSTEM PLUMBING (Dash 2) ---")
+    # --- Section 1: Liquidity & Plumbing ---
+    report_lines.append("--- 1. LIQUIDITY & SYSTEM PLUMBING (Dash 1) ---")
     report_lines.append(f"  Bank Reserve Ratio: {status_results['res_ratio'][1]} (Value: {format_value('res_ratio', latest_values['res_ratio'])})")
     report_lines.append(f"  System Regime (Elasticity): {status_results['elasticity'][1]} (Value: {format_value('elasticity', latest_values['elasticity'])})")
     report_lines.append(f"  Unsecured Stress (HY Spread): {status_results['hy_spread'][1]} (Value: {format_value('hy_spread', latest_values['hy_spread'])})")
     report_lines.append(f"  Secured Stress (SOFR Spread): {status_results['sofr_spread'][1]} (Value: {format_value('sofr_spread', latest_values['sofr_spread'])})")
 
-    # --- Section 3: Leading & Global ---
-    report_lines.append("\n--- 3. LEADING & GLOBAL INDICATORS (Dash 3) ---")
+    # --- Section 2: Macro & Fear ---
+    report_lines.append("\n--- 2. MACRO RISK & FEAR (Dash 2) ---")
+    report_lines.append(f"  Credit Spreads (BAA10Y): {status_results['baa'][1]} (Value: {format_value('baa', latest_values['baa'])})")
+    report_lines.append(f"  Stock Volatility (VIX): {status_results['vix'][1]} (Value: {format_value('vix', latest_values['vix'])})")
+    report_lines.append(f"  Bond Volatility (MOVE): {status_results['move'][1]} (Value: {format_value('move', latest_values['move'])})")
+    report_lines.append(f"  Inflation Expectations: {status_results['t10yie'][1]} (Value: {format_value('t10yie', latest_values['t10yie'])})")
+
+    # --- Section 3: Consumer & Risk Appetite ---
+    report_lines.append("\n--- 3. CONSUMER & RISK APPETITE (Dash 3) ---")
+    report_lines.append(f"  Real Retail Sales (YoY %): {status_results['rrsfs_yoy'][1]} (Value: {format_value('rrsfs_yoy', latest_values['rrsfs_yoy'])})")
+    report_lines.append(f"  VIX-MOVE Spread: {status_results['vix_move_spread'][1]} (Value: {format_value('vix_move_spread', latest_values['vix_move_spread'])})")
+
+    # --- Section 4: Global Risk ---
+    report_lines.append("\n--- 4. LEADING & GLOBAL INDICATORS (Dash 4) ---")
     report_lines.append(f"  Yield Curve (T10Y2Y): {status_results['t10y2y'][1]} (Value: {format_value('t10y2y', latest_values['t10y2y'])})")
     report_lines.append(f"  Financial Conditions (NFCI): {status_results['nfci'][1]} (Value: {format_value('nfci', latest_values['nfci'])})")
     report_lines.append(f"  US Dollar Index: {status_results['dollar'][1]} (Value: {format_value('dollar', latest_values['dollar'])})")
 
-    # --- Section 4: Leading Economic Indicators ---
-    report_lines.append("\n--- 4. LEADING ECONOMIC INDICATORS (Dash 4) ---")
+    # --- Section 5: Leading Economic Indicators ---
+    report_lines.append("\n--- 5. LEADING ECONOMIC INDICATORS (Dash 5) ---")
     report_lines.append(f"  Housing Starts (YoY %): {status_results['houst_yoy'][1]} (Value: {format_value('houst_yoy', latest_values['houst_yoy'])})")
-    # *** FIX: Use new_orders_yoy ***
     report_lines.append(f"  Durable Goods (YoY %): {status_results['new_orders_yoy'][1]} (Value: {format_value('new_orders_yoy', latest_values['new_orders_yoy'])})")
     report_lines.append(f"  Jobless Claims (% from Low): {status_results['claims_rise'][1]} (Value: {format_value('claims_rise', latest_values['claims_rise'])})")
     report_lines.append(f"  High-Yield Spread: {status_results['hy_spread'][1]} (Value: {format_value('hy_spread', latest_values['hy_spread'])})")
-
-
-    # --- Section 5: Earnings & Consumer ---
-    report_lines.append("\n--- 5. CONSUMER & RISK APPETITE (Dash 5) ---")
-    report_lines.append(f"  Real Retail Sales (YoY %): {status_results['rrsfs_yoy'][1]} (Value: {format_value('rrsfs_yoy', latest_values['rrsfs_yoy'])})")
-    report_lines.append(f"  VIX-MOVE Spread: {status_results['vix_move_spread'][1]} (Value: {format_value('vix_move_spread', latest_values['vix_move_spread'])})")
 
 
     # --- Section 6: Overall Summary ---
@@ -922,8 +896,8 @@ try:
 
     # Specific conflict message
     if status_results.get('t10y2y') and status_results.get('baa') and \
-       status_results['t10y2y'][0] == STATUS_COLORS['red'] and \
-       status_results['baa'][0] != STATUS_COLORS['red']:
+       status_results.get('t10y2y', ('', ''))[0] == STATUS_COLORS['red'] and \
+       status_results.get('baa', ('', ''))[0] != STATUS_COLORS['red']:
         report_lines.append("\nNOTE: A significant conflict exists: Leading indicators (Yield Curve, Housing) signal a recession,")
         report_lines.append("      but current indicators (Credit Spreads) are signaling economic health.")
 
@@ -939,9 +913,10 @@ try:
 
 except Exception as e:
     error_message = f"Error generating text interpretation: {e}"
-    print(error_message)
+    print(f"Error generating text interpretation: {e}")
+    # Also write the error to the file if it fails
     with open("dashboard_summary_report.txt", "w", encoding="utf-8") as f:
-        f.write(error_message)
+        f.write(f"Error generating text interpretation: {e}")
 
 print("\n" + "="*70)
 print("--- Master Dashboard Script Finished ---")
@@ -1084,30 +1059,32 @@ def generate_html_page(report_file, image_files, status):
             </div>
             
             <div class="dashboard-grid">
+                
                 <div class="dashboard-item">
-                    <h2>Dashboard 1: Macro Fear & Risk</h2>
-                    <img src="dashboard_1_market_risk.png?v={cache_buster}" alt="Dashboard 1: Macro Fear & Risk">
+                    <h2>Dashboard 1: Monetary Analysis & Liquidity</h2>
+                    <img src="dashboard_1_liquidity.png?v={cache_buster}" alt="Dashboard 1: Monetary Analysis & Liquidity">
                 </div>
                 
                 <div class="dashboard-item">
-                    <h2>Dashboard 2: Monetary Analysis & Liquidity</h2>
-                    <img src="dashboard_2_liquidity.png?v={cache_buster}" alt="Dashboard 2: Monetary Analysis & Liquidity">
-                </div>
-                
-                <div class="dashboard-item">
-                    <h2>Dashboard 3: Global Risk & Recession Indicators</h2>
-                    <img src="dashboard_3_global_risk.png?v={cache_buster}" alt="Dashboard 3: Global Risk & Recession Indicators">
-                </div>
-                
-                <div class="dashboard-item">
-                    <h2>Dashboard 4: Leading Economic Indicators</h2>
-                    <img src="dashboard_4_leading_risk.png?v={cache_buster}" alt="Dashboard 4: Leading Economic Indicators">
+                    <h2>Dashboard 2: Macro Fear & Risk</h2>
+                    <img src="dashboard_2_macro_fear.png?v={cache_buster}" alt="Dashboard 2: Macro Fear & Risk">
                 </div>
                 
                 <div class="dashboard-item full-width">
-                    <h2>Dashboard 5: Consumer Health & Risk Appetite</h2>
-                    <img src="dashboard_5_earnings_consumer.png?v={cache_buster}" alt="Dashboard 5: Consumer & Risk Appetite">
+                    <h2>Dashboard 3: Consumer Health & Risk Appetite</h2>
+                    <img src="dashboard_3_consumer_risk.png?v={cache_buster}" alt="Dashboard 3: Consumer Health & Risk Appetite">
                 </div>
+                
+                <div class="dashboard-item">
+                    <h2>Dashboard 4: Global Risk & Recession Indicators</h2>
+                    <img src="dashboard_4_global_risk.png?v={cache_buster}" alt="Dashboard 4: Global Risk & Recession Indicators">
+                </div>
+                
+                <div class="dashboard-item">
+                    <h2>Dashboard 5: Leading Economic Indicators</h2>
+                    <img src="dashboard_5_leading_eco.png?v={cache_buster}" alt="Dashboard 5: Leading Economic Indicators">
+                </div>
+
             </div>
         </div>
     </div>
@@ -1125,11 +1102,11 @@ def generate_html_page(report_file, image_files, status):
 
 # --- 9. Call HTML generation function ---
 image_files = [
-    'dashboard_1_market_risk.png',
-    'dashboard_2_liquidity.png',
-    'dashboard_3_global_risk.png',
-    'dashboard_4_leading_risk.png',
-    'dashboard_5_earnings_consumer.png'
+    'dashboard_1_liquidity.png',
+    'dashboard_2_macro_fear.png',
+    'dashboard_3_consumer_risk.png',
+    'dashboard_4_global_risk.png',
+    'dashboard_5_leading_eco.png'
 ]
 generate_html_page('dashboard_summary_report.txt', image_files, status_results)
 
